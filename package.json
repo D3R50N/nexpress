@@ -1,7 +1,7 @@
 {
   "name": "@nxpress/core",
   "version": "1.0.0",
-  "description": "Express.js framework with file-based routing and template components (TypeScript)",
+  "description": "Express.js framework with file-based routing and template components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -28,7 +28,11 @@
     "handlebars",
     "typescript",
     "ssr",
-    "routing"
+    "routing",
+    "next",
+    "template",
+    "ejs",
+    "templating"
   ],
   "author": "",
   "license": "MIT",
