@@ -12,6 +12,9 @@
     "nxp": "./dist/bin/nxpress.js",
     "nxpress": "./dist/bin/nxpress.js"
   },
+  "repository": {
+    "url": "https://github.com/D3R50N/nexpress"
+  },
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm build",
