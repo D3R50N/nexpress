@@ -62,6 +62,7 @@ export function compileTailwindCss(
     const compileCmd = `npx @tailwindcss/cli -i "${inputCss}" -o "${outputCss}"`;
     execSync(compileCmd, { cwd: rootDir, stdio: 'ignore' });
   } catch (err: any) {
+    console.log(err);
     logger.warn('Tailwind CSS compilation notice:', err?.message || err);
   }
 

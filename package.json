@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "pnpm build",
-    "dev": "nodemon -x tsc --watch src/ --ext ts,js",
+    "dev": "tsc --watch",
     "example:hbs": "tsx example/handlebars/server.ts",
     "example:hbs:dev": "nodemon --delay 1 --watch example/handlebars --ext ts,hbs,html,js --exec tsx example/handlebars/server.ts",
     "example:ejs": "tsx example/ejs/server.ts",

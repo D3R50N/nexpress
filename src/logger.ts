@@ -49,7 +49,7 @@ export const logger = {
     }
     console.warn(
       PREFIX,
-      chalk.yellow(`File changed (${filePath}). Reloading...`),
+      chalk.yellow(`${filePath} → Reloading...`),
       reloadCount > 1 ? chalk.gray(`×${reloadCount}`) : "",
     );
 

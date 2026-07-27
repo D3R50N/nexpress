@@ -130,11 +130,11 @@ program
     let isReloading = false; //prevent double reload
     let reloadCount = 0;
 
-    watcher.on("all", (event, filePath) => {
+    const triggerReload = (reason: string) => {
       if (isReloading) return;
       isReloading = true;
       reloadCount++;
-      logger.reload(path.relative(rootDir, filePath), reloadCount);
+      logger.reload(reason, reloadCount);
       currentServer.close(() => {
         Object.keys(require.cache).forEach((key) => {
           if (key.startsWith(rootDir)) {
@@ -150,7 +150,25 @@ program
         oldOptions = freshOptions;
         isReloading = false;
       });
+    };
+
+    watcher.on("all", (event, filePath) => {
+      triggerReload(`File changed \`${path.relative(rootDir, filePath)}\``);
     });
+
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (key: string) => {
+        if (key === "\u0003" || key === "\u0004") {
+          process.exit(0);
+        }
+        if (key.toLowerCase() === "r" || key.trim().toLowerCase() === "rs") {
+          triggerReload("Manual reload");
+        }
+      });
+    }
   });
 
 program
