@@ -1,0 +1,7 @@
+<div class="card">
+  <span class="badge"><%= product.category %></span>
+  <h3><%= product.name %></h3>
+  <p style="color: #94a3b8; font-size: 0.9rem;"><%= product.description %></p>
+  <div class="price"><%= product.price %> <%= G.currency %></div>
+  <a href="/products/<%= product.id %>" class="btn">Voir détails &rarr;</a>
+</div>

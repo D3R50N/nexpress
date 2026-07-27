@@ -1,0 +1,36 @@
+<div style="text-align: center; margin-bottom: 2rem;">
+  <h1>🚀 <%= upper(G.siteName) %></h1>
+  <p style="color: #94a3b8;">Application de démonstration Nxpress utilisant le moteur de rendu EJS.</p>
+</div>
+
+<div class="card" style="margin-bottom: 2rem; border: 1px solid #38bdf8;">
+  <h2>🎭 Blague du Jour (SSR API)</h2>
+  <% if (joke) { %>
+    <% if (joke.type === 'single') { %>
+      <p style="font-size: 1.1rem; margin-top: 1rem;"><%= joke.joke %></p>
+    <% } else { %>
+      <p style="font-size: 1.1rem; font-weight: bold; margin-top: 1rem;">👉 <%= joke.setup %></p>
+      <p style="font-size: 1.1rem; color: #38bdf8; margin-top: 0.5rem;">💡 <%= joke.delivery %></p>
+    <% } %>
+  <% } else { %>
+    <p style="color: #94a3b8;">Chargement de la blague impossible.</p>
+  <% } %>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+  <h2>📌 Démonstration des Helpers</h2>
+  <ul>
+    <li><strong>Majuscule (upper) :</strong> <%= upper(G.siteName) %></li>
+    <li><strong>Minuscule (lower) :</strong> <%= lower(G.siteName) %></li>
+    <li><strong>Nombre de produits (len) :</strong> <%= len(products) %></li>
+    <li><strong>Capitalize :</strong> <%= capitalize('bienvenue') %></li>
+    <li><strong>JSON (str) :</strong> <code><%= str(G.siteName) %></code></li>
+  </ul>
+</div>
+
+<h2>🔥 Produits Exemple</h2>
+<div class="grid">
+  <% products.forEach(product => { %>
+    <%- $('ProductCard', { product }) %>
+  <% }) %>
+</div>

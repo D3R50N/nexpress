@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Nxpress Configuration Schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON schema reference for IDE autocompletion"
+    },
+    "port": {
+      "type": "number",
+      "default": 3000,
+      "description": "Port number for the HTTP server"
+    },
+    "engine": {
+      "type": "string",
+      "enum": ["hbs", "ejs", "html"],
+      "default": "hbs",
+      "description": "Template engine to use for SSR rendering"
+    },
+    "appDir": {
+      "type": "string",
+      "default": "app",
+      "description": "Directory for file-based route templates and API endpoints"
+    },
+    "componentsDir": {
+      "type": "string",
+      "default": "components",
+      "description": "Directory for auto-loaded template components"
+    },
+    "publicDir": {
+      "type": "string",
+      "default": "public",
+      "description": "Directory for static asset serving"
+    },
+    "globals": {
+      "type": "object",
+      "description": "Global variables injected into all template views (accessible via G.key)"
+    }
+  },
+  "additionalProperties": false
+}

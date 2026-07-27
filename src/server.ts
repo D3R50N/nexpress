@@ -1,0 +1,136 @@
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
+import express, { Express } from "express";
+import expressLayouts from "express-ejs-layouts";
+import chalk from "chalk";
+import { registerRoutes } from "./router";
+import { registerComponents, renderComponent } from "./components";
+import { registerBuiltinHelpers, builtinHelpers } from "./helpers";
+import { Server } from "http";
+
+import { logger } from "./logger";
+
+export type TemplateEngine = "hbs" | "ejs" | "html";
+
+export interface NxpressServerOptions {
+  rootDir?: string;
+  appDir?: string;
+  pagesDir?: string;
+  componentsDir?: string;
+  publicDir?: string;
+  engine?: TemplateEngine;
+  port?: number;
+  globals?: Record<string, any>;
+}
+
+/**
+ * Creates and configures the Nxpress Express app.
+ */
+export function createServer(options: NxpressServerOptions = {}): Express {
+  const app = express();
+  const rootDir = options.rootDir || process.cwd();
+
+  // Load .env file from rootDir if available
+  const envPath = path.join(rootDir, ".env");
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+
+  const appDir =
+    options.appDir ||
+    options.pagesDir ||
+    (fs.existsSync(path.join(rootDir, "app"))
+      ? path.join(rootDir, "app")
+      : path.join(rootDir, "pages"));
+  const componentsDir =
+    options.componentsDir || path.join(rootDir, "components");
+  const publicDir = options.publicDir || path.join(rootDir, "public");
+
+  const rawEngine = options.engine || "hbs";
+  const engine = rawEngine.toLowerCase() as TemplateEngine;
+  const allowedEngines: TemplateEngine[] = ["hbs", "ejs", "html"];
+
+  if (!allowedEngines.includes(engine)) {
+    throw new Error(
+      `[nxpress] Unsupported template engine: "${rawEngine}". Allowed engines are: hbs, ejs, html`,
+    );
+  }
+
+  app.set("view engine", engine);
+  app.set("views", [appDir, componentsDir, rootDir]);
+
+  if (engine === "hbs") {
+    registerBuiltinHelpers();
+  } else if (engine === "html") {
+    const htmlRenderer = (filePath: string, _opts: any, callback: any) => {
+      try {
+        const content = fs.readFileSync(filePath, "utf8");
+        callback(null, content);
+      } catch (err) {
+        callback(err);
+      }
+    };
+    app.engine("html", htmlRenderer);
+    app.engine("htm", htmlRenderer);
+  }
+
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  // Middleware injecting automatic global template variables
+  app.use((req, res, next) => {
+    const now = new Date();
+    const globalObj = {
+      $: renderComponent,
+      ...builtinHelpers,
+      ...(options.globals || {}),
+    };
+    const reqContext = {
+      query: req.query,
+      params: req.params,
+      url: req.url,
+      path: req.path,
+    };
+
+    res.locals.year = now.getFullYear();
+    res.locals.date = now;
+    res.locals.E = process.env;
+    res.locals.env = process.env;
+    res.locals.G = globalObj;
+    res.locals.global = globalObj;
+    res.locals.C = reqContext;
+    res.locals.context = reqContext;
+    res.locals.$ = (name: string, props: Record<string, any> = {}) =>
+      renderComponent(name, props, res.locals);
+    Object.assign(res.locals, builtinHelpers);
+
+    next();
+  });
+
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+  }
+
+  registerComponents(componentsDir);
+  registerRoutes(app, appDir, { engine, globals: options.globals, rootDir });
+
+  return app;
+}
+
+/**
+ * Starts the Nxpress server on specified port.
+ */
+export function startServer(
+  options: NxpressServerOptions = {},
+  log: boolean = true,
+): Server {
+  const port = options.port || Number(process.env.PORT) || 3000;
+  const app = createServer(options);
+
+  return app.listen(port, () => {
+    if (log) {
+      logger.serverRunning(port);
+    }
+  });
+}
