@@ -1,9 +1,9 @@
 import path from 'path';
-import { startServer } from '../../src/server';
+import { serve } from '../../src/server';
 
 const PORT = 3000;
 
-startServer({
+serve({
   port: PORT,
   rootDir: __dirname,
   globals: {

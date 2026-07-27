@@ -251,11 +251,6 @@
   .gap-6 {
     gap: calc(var(--spacing) * 6);
   }
-  .truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   .rounded-2xl {
     border-radius: var(--radius-2xl);
   }
@@ -405,9 +400,6 @@
   }
   .text-white {
     color: var(--color-white);
-  }
-  .capitalize {
-    text-transform: capitalize;
   }
   .lowercase {
     text-transform: lowercase;

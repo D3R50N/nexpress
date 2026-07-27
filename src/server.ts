@@ -29,7 +29,7 @@ export interface NxpressServerOptions {
 /**
  * Creates and configures the Nxpress Express app.
  */
-export function createServer(options: NxpressServerOptions = {}): Express {
+export function nxpress(options: NxpressServerOptions = {}): Express {
   const app = express();
   const rootDir = options.rootDir || process.cwd();
 
@@ -129,12 +129,12 @@ export function createServer(options: NxpressServerOptions = {}): Express {
 /**
  * Starts the Nxpress server on specified port.
  */
-export function startServer(
+export function serve(
   options: NxpressServerOptions = {},
   log: boolean = true,
 ): Server {
   const port = options.port || Number(process.env.PORT) || 3000;
-  const app = createServer(options);
+  const app = nxpress(options);
 
   return app.listen(port, () => {
     if (log) {

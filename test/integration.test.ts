@@ -1,7 +1,7 @@
 import http from 'http';
 import assert from 'assert';
 import path from 'path';
-import { startServer } from '../src/server';
+import { serve } from '../src/server';
 
 const PORT_HBS = 4567;
 const PORT_EJS = 4568;
@@ -9,7 +9,7 @@ const PORT_EJS = 4568;
 const hbsDir = path.join(__dirname, '../example/handlebars');
 const ejsDir = path.join(__dirname, '../example/ejs');
 
-const hbsServer = startServer({
+const hbsServer = serve({
   port: PORT_HBS,
   rootDir: hbsDir,
   tailwind: false,
@@ -21,7 +21,7 @@ const hbsServer = startServer({
   },
 });
 
-const ejsServer = startServer({
+const ejsServer = serve({
   port: PORT_EJS,
   rootDir: ejsDir,
   engine: 'ejs',
@@ -70,7 +70,7 @@ async function runTests() {
 
     // 3. Test invalid engine error
     assert.throws(() => {
-      startServer({ port: 9999, engine: 'pug' as any });
+      serve({ port: 9999, engine: 'pug' as any });
     }, /Unsupported template engine/);
     console.log('✅ Unsupported engine validation test passed!');
 

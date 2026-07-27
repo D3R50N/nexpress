@@ -182,12 +182,12 @@ Tailwind CSS is automatically compiled and injected into the `<head>` tag when r
 
 ## Programmatic Usage
 
-### Quick Start (`startServer`)
+### Quick Start (`serve`)
 
 ```typescript
-import { startServer } from '@nxpress/core';
+import { serve } from '@nxpress/core';
 
-startServer({
+serve({
   port: 3000,
   engine: 'hbs',
   globals: {
@@ -196,14 +196,14 @@ startServer({
 });
 ```
 
-### Custom Express Instance (`createServer`)
+### Custom Express Instance (`nxpress`)
 
-Use `createServer` to obtain the Express app instance, allowing you to attach custom middleware or additional routes:
+Use `nxpress` to obtain the Express app instance, allowing you to attach custom middleware or additional routes:
 
 ```typescript
-import { createServer } from '@nxpress/core';
+import { nxpress } from '@nxpress/core';
 
-const app = createServer({
+const app = nxpress({
   engine: 'hbs',
   globals: {
     siteName: 'My Custom App',

@@ -4,7 +4,7 @@ import { Command } from "commander";
 import path from "path";
 import fs from "fs";
 import chokidar from "chokidar";
-import { startServer, NxpressServerOptions } from "../server";
+import { serve, NxpressServerOptions } from "../server";
 import { logger } from "../logger";
 
 function getNxpressVersion(): string {
@@ -104,7 +104,7 @@ program
     console.log();
     logger.info(`Starting dev server...`);
 
-    let currentServer = startServer(options);
+    let currentServer = serve(options);
     let oldOptions: NxpressServerOptions = options;
 
     const rootDir = options.rootDir || process.cwd();
@@ -143,7 +143,7 @@ program
         });
         const freshOptions = resolveServerOptions(cmdOptions);
 
-        currentServer = startServer(
+        currentServer = serve(
           freshOptions,
           oldOptions.port != freshOptions.port,
         );
@@ -164,7 +164,7 @@ program
   .option("-r, --root-dir <dir>", "Custom root directory")
   .action((cmdOptions) => {
     const options = resolveServerOptions(cmdOptions);
-    startServer(options);
+    serve(options);
   });
 
 program.parse(process.argv);
