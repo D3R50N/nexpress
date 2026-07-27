@@ -101,6 +101,7 @@ program
   .option("-t, --tailwind", "Enable automatic Tailwind CSS compilation")
   .action((cmdOptions) => {
     const options = resolveServerOptions(cmdOptions);
+    console.log();
     logger.info(`Starting dev server...`);
 
     let currentServer = startServer(options);
@@ -124,16 +125,16 @@ program
     const watcher = chokidar.watch(watchTargets, {
       ignored: ["**/public/tailwind.css", "**/tailwind.css", "**/*.map"],
       ignoreInitial: true,
-      interval: 500,
+      interval: 100,
     });
     let isReloading = false; //prevent double reload
+    let reloadCount = 0;
 
     watcher.on("all", (event, filePath) => {
       if (isReloading) return;
       isReloading = true;
-      logger.warn(
-        `File changed (${path.relative(rootDir, filePath)}). Reloading...`,
-      );
+      reloadCount++;
+      logger.reload(path.relative(rootDir, filePath), reloadCount);
       currentServer.close(() => {
         Object.keys(require.cache).forEach((key) => {
           if (key.startsWith(rootDir)) {
