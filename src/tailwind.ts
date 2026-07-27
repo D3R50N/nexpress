@@ -33,6 +33,25 @@ export function getTailwindOutputInfo(
   return { outputCss, cssPublicUrl };
 }
 
+function findTailwindCliCommand(rootDir: string): string {
+  try {
+    const pkgPath = require.resolve('@tailwindcss/cli/package.json', {
+      paths: [rootDir, __dirname, path.join(__dirname, '..')],
+    });
+    const pkgDir = path.dirname(pkgPath);
+    const pkgJson = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const binRel = typeof pkgJson.bin === 'string' ? pkgJson.bin : pkgJson.bin?.tailwindcss;
+    if (binRel) {
+      const binPath = path.resolve(pkgDir, binRel);
+      if (fs.existsSync(binPath)) {
+        return `node "${binPath}"`;
+      }
+    }
+  } catch (e) {}
+
+  return 'npx @tailwindcss/cli';
+}
+
 /**
  * Compiles Tailwind CSS inside publicDir once on server startup/restart.
  */
@@ -59,10 +78,10 @@ export function compileTailwindCss(
   }
 
   try {
-    const compileCmd = `npx @tailwindcss/cli -i "${inputCss}" -o "${outputCss}"`;
+    const cliCmd = findTailwindCliCommand(rootDir);
+    const compileCmd = `${cliCmd} -i "${inputCss}" -o "${outputCss}"`;
     execSync(compileCmd, { cwd: rootDir, stdio: 'ignore' });
   } catch (err: any) {
-    console.log(err);
     logger.warn('Tailwind CSS compilation notice:', err?.message || err);
   }
 

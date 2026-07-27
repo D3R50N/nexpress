@@ -3,3 +3,4 @@ export { registerRoutes, fileToRoutePath, NxpressDataModule, RouterOptions } fro
 export { registerComponents, renderComponent, ComponentOptions } from './components';
 export { builtinHelpers, registerBuiltinHelpers } from './helpers';
 export { logger } from './logger';
+export type { Request, Response, Express, NextFunction } from 'express';
