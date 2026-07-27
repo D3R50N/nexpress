@@ -10,6 +10,7 @@ import { registerBuiltinHelpers, builtinHelpers } from "./helpers";
 import { Server } from "http";
 
 import { logger } from "./logger";
+import { compileTailwindCss, TailwindOptions } from "./tailwind";
 
 export type TemplateEngine = "hbs" | "ejs" | "html";
 
@@ -21,6 +22,7 @@ export interface NxpressServerOptions {
   publicDir?: string;
   engine?: TemplateEngine;
   port?: number;
+  tailwind?: boolean | TailwindOptions;
   globals?: Record<string, any>;
 }
 
@@ -37,6 +39,17 @@ export function createServer(options: NxpressServerOptions = {}): Express {
     dotenv.config({ path: envPath });
   }
 
+  const publicDir = options.publicDir || path.join(rootDir, "public");
+
+  // Enable Tailwind by default unless explicitly set to false
+  let tailwindCssUrl = "/tailwind.css";
+  const hasTailwindConfig = options.tailwind !== false;
+
+  if (hasTailwindConfig) {
+    const twOpts = typeof options.tailwind === "object" ? options.tailwind : {};
+    tailwindCssUrl = compileTailwindCss(rootDir, publicDir, twOpts);
+  }
+
   const appDir =
     options.appDir ||
     options.pagesDir ||
@@ -45,7 +58,6 @@ export function createServer(options: NxpressServerOptions = {}): Express {
       : path.join(rootDir, "pages"));
   const componentsDir =
     options.componentsDir || path.join(rootDir, "components");
-  const publicDir = options.publicDir || path.join(rootDir, "public");
 
   const rawEngine = options.engine || "hbs";
   const engine = rawEngine.toLowerCase() as TemplateEngine;
@@ -86,21 +98,17 @@ export function createServer(options: NxpressServerOptions = {}): Express {
       ...builtinHelpers,
       ...(options.globals || {}),
     };
-    const reqContext = {
-      query: req.query,
-      params: req.params,
-      url: req.url,
-      path: req.path,
-    };
 
+    res.locals.tailwindCssUrl = tailwindCssUrl;
+    res.locals.tailwind = `<link rel="stylesheet" href="${tailwindCssUrl}"/>`;
     res.locals.year = now.getFullYear();
-    res.locals.date = now;
+    res.locals.now = now;
     res.locals.E = process.env;
     res.locals.env = process.env;
     res.locals.G = globalObj;
     res.locals.global = globalObj;
-    res.locals.C = reqContext;
-    res.locals.context = reqContext;
+    res.locals.R = req;
+    res.locals.req = req;
     res.locals.$ = (name: string, props: Record<string, any> = {}) =>
       renderComponent(name, props, res.locals);
     Object.assign(res.locals, builtinHelpers);

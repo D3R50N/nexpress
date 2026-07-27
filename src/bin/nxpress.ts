@@ -84,6 +84,7 @@ function resolveServerOptions(
     publicDir: cmdOptions.publicDir
       ? path.resolve(rootDir, cmdOptions.publicDir)
       : fileConfig.publicDir,
+    tailwind: cmdOptions.tailwind ?? fileConfig.tailwind ?? true,
     globals: fileConfig.globals || {},
   };
 }
@@ -97,6 +98,7 @@ program
   .option("-c, --components-dir <dir>", "Custom components directory")
   .option("--public-dir <dir>", "Custom public directory")
   .option("-r, --root-dir <dir>", "Custom root directory")
+  .option("-t, --tailwind", "Enable automatic Tailwind CSS compilation")
   .action((cmdOptions) => {
     const options = resolveServerOptions(cmdOptions);
     logger.info(`Starting dev server...`);
@@ -120,11 +122,15 @@ program
     ].filter((target) => fs.existsSync(target));
 
     const watcher = chokidar.watch(watchTargets, {
+      ignored: ["**/public/tailwind.css", "**/tailwind.css", "**/*.map"],
       ignoreInitial: true,
-      interval: 100,
+      interval: 500,
     });
+    let isReloading = false; //prevent double reload
 
     watcher.on("all", (event, filePath) => {
+      if (isReloading) return;
+      isReloading = true;
       logger.warn(
         `File changed (${path.relative(rootDir, filePath)}). Reloading...`,
       );
@@ -141,6 +147,7 @@ program
           oldOptions.port != freshOptions.port,
         );
         oldOptions = freshOptions;
+        isReloading = false;
       });
     });
   });

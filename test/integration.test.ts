@@ -12,6 +12,7 @@ const ejsDir = path.join(__dirname, '../example/ejs');
 const hbsServer = startServer({
   port: PORT_HBS,
   rootDir: hbsDir,
+  tailwind: false,
   globals: {
     siteName: 'Nexpress Store',
     appName: 'Nexpress App',
@@ -24,6 +25,7 @@ const ejsServer = startServer({
   port: PORT_EJS,
   rootDir: ejsDir,
   engine: 'ejs',
+  tailwind: false,
   globals: {
     siteName: 'Nexpress EJS Store',
     author: 'Nexpress Team',

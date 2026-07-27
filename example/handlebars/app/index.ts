@@ -10,6 +10,7 @@ export async function props(req: Request, res: Response) {
   }
 
   return {
+    env:{},
     title: 'Accueil',
     joke,
     featuredProducts: [
