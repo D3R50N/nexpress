@@ -1,13 +1,11 @@
-import fs from "fs";
-import path from "path";
 import dotenv from "dotenv";
 import express, { Express } from "express";
-import expressLayouts from "express-ejs-layouts";
-import chalk from "chalk";
-import { registerRoutes } from "./router";
-import { registerComponents, renderComponent } from "./components";
-import { registerBuiltinHelpers, builtinHelpers } from "./helpers";
+import fs from "fs";
 import { Server } from "http";
+import path from "path";
+import { registerComponents, renderComponent } from "./components";
+import { builtinHelpers, registerBuiltinHelpers } from "./helpers";
+import { registerRoutes } from "./router";
 
 import { logger } from "./logger";
 import { compileTailwindCss, TailwindOptions } from "./tailwind";

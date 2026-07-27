@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { execSync } from 'child_process';
-import { logger } from './logger';
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
+import { logger } from "./logger";
 
 export interface TailwindOptions {
   enabled?: boolean;
@@ -15,19 +15,19 @@ export interface TailwindOptions {
 export function getTailwindOutputInfo(
   rootDir: string,
   publicDir?: string,
-  options: TailwindOptions = {}
+  options: TailwindOptions = {},
 ): { outputCss: string; cssPublicUrl: string } {
   const resolvedPublicDir = publicDir
     ? path.resolve(rootDir, publicDir)
-    : path.join(rootDir, 'public');
+    : path.join(rootDir, "public");
 
-  const rawOutput = options.output || 'tailwind.css';
+  const rawOutput = options.output || "tailwind.css";
   const relPath = path.isAbsolute(rawOutput)
     ? path.relative(resolvedPublicDir, rawOutput)
     : rawOutput;
 
   const outputCss = path.resolve(resolvedPublicDir, relPath);
-  const cleanRelUrl = relPath.replace(/\\/g, '/').replace(/^\//, '');
+  const cleanRelUrl = relPath.replace(/\\/g, "/").replace(/^\//, "");
   const cssPublicUrl = `/${cleanRelUrl}`;
 
   return { outputCss, cssPublicUrl };
@@ -35,12 +35,13 @@ export function getTailwindOutputInfo(
 
 function findTailwindCliCommand(rootDir: string): string {
   try {
-    const pkgPath = require.resolve('@tailwindcss/cli/package.json', {
-      paths: [rootDir, __dirname, path.join(__dirname, '..')],
+    const pkgPath = require.resolve("@tailwindcss/cli/package.json", {
+      paths: [rootDir, __dirname, path.join(__dirname, "..")],
     });
     const pkgDir = path.dirname(pkgPath);
-    const pkgJson = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    const binRel = typeof pkgJson.bin === 'string' ? pkgJson.bin : pkgJson.bin?.tailwindcss;
+    const pkgJson = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    const binRel =
+      typeof pkgJson.bin === "string" ? pkgJson.bin : pkgJson.bin?.tailwindcss;
     if (binRel) {
       const binPath = path.resolve(pkgDir, binRel);
       if (fs.existsSync(binPath)) {
@@ -49,7 +50,7 @@ function findTailwindCliCommand(rootDir: string): string {
     }
   } catch (e) {}
 
-  return 'npx @tailwindcss/cli';
+  return "npx @tailwindcss/cli";
 }
 
 /**
@@ -58,13 +59,17 @@ function findTailwindCliCommand(rootDir: string): string {
 export function compileTailwindCss(
   rootDir: string,
   publicDir?: string,
-  options: TailwindOptions = {}
+  options: TailwindOptions = {},
 ): string {
   const inputCss = options.input
     ? path.resolve(rootDir, options.input)
-    : path.join(rootDir, 'app.css');
+    : path.join(rootDir, "app.css");
 
-  const { outputCss, cssPublicUrl } = getTailwindOutputInfo(rootDir, publicDir, options);
+  const { outputCss, cssPublicUrl } = getTailwindOutputInfo(
+    rootDir,
+    publicDir,
+    options,
+  );
   const outputDir = path.dirname(outputCss);
 
   if (!fs.existsSync(outputDir)) {
@@ -73,16 +78,16 @@ export function compileTailwindCss(
 
   // Create default input CSS if it does not exist
   if (!fs.existsSync(inputCss)) {
-    const defaultCssContent = `@import "tailwindcss";\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
-    fs.writeFileSync(inputCss, defaultCssContent, 'utf8');
+    const defaultCssContent = `@import "tailwindcss";\n@import "tailwindcss/preflight";\n@tailwind utilities;\n`;
+    fs.writeFileSync(inputCss, defaultCssContent, "utf8");
   }
 
   try {
     const cliCmd = findTailwindCliCommand(rootDir);
     const compileCmd = `${cliCmd} -i "${inputCss}" -o "${outputCss}"`;
-    execSync(compileCmd, { cwd: rootDir, stdio: 'ignore' });
+    execSync(compileCmd, { cwd: rootDir, stdio: "ignore" });
   } catch (err: any) {
-    logger.warn('Tailwind CSS compilation notice:', err?.message || err);
+    logger.warn("Tailwind CSS compilation notice:", err?.message || err);
   }
 
   return cssPublicUrl;
@@ -93,7 +98,7 @@ export function compileTailwindCss(
  */
 export function injectTailwindCss(
   html: string,
-  cssPublicUrl: string = '/tailwind.css'
+  cssPublicUrl: string = "/tailwind.css",
 ): string {
   if (html.includes(cssPublicUrl)) {
     return html;
@@ -101,8 +106,8 @@ export function injectTailwindCss(
 
   const linkTag = `<link rel="stylesheet" href="${cssPublicUrl}">\n`;
 
-  if (html.includes('</head>')) {
-    return html.replace('</head>', `  ${linkTag}</head>`);
+  if (html.includes("</head>")) {
+    return html.replace("</head>", `  ${linkTag}</head>`);
   }
 
   return linkTag + html;
