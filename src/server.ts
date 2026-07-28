@@ -36,9 +36,8 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
   // Load .env file from rootDir if available
   const envPath = path.join(rootDir, ".env");
   if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath });
+    dotenv.config({ path: envPath, quiet: true, override: true });
   }
-
   const publicDir = options.publicDir || path.join(rootDir, "public");
 
   // Enable Tailwind by default unless explicitly set to false
@@ -102,7 +101,7 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     const protocol = req.protocol || "http";
     const host = req.get("host") || "";
     const fullBaseUrl = host ? `${protocol}://${host}` : "";
-    const full= host
+    const full = host
       ? `${protocol}://${host}${req.originalUrl || req.url}`
       : req.originalUrl || req.url;
 
