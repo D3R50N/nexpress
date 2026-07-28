@@ -168,8 +168,8 @@ program
       ignored: [tailwindOutput, "**/*.map"],
       ignoreInitial: true,
       awaitWriteFinish: {
-        stabilityThreshold: 100,
-        pollInterval: 25,
+        stabilityThreshold: 25,
+        pollInterval: 10,
       },
     });
 
