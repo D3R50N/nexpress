@@ -4,18 +4,16 @@
   <p><strong>A Next.js-like Framework for Express.js</strong></p>
 
   [![npm version](https://img.shields.io/npm/v/@nxpress/core.svg?style=flat-square)](https://www.npmjs.com/package/@nxpress/core)
-  [![Documentation](https://img.shields.io/badge/Documentation-nxpress.netlify.app-02fafc?style=flat-square)](https://nxpress.netlify.app/)
+  [![Documentation](https://img.shields.io/badge/Documentation-nxpress.netlify.app-34027B?style=flat-square)](https://nxpress.netlify.app/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
   [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
 
-  <br />
-  <a href="https://nxpress.netlify.app/"><strong>📖 Read the Official Documentation Site →</strong></a>
+  \
+  <a href="https://nxpress.netlify.app/"><strong><u>Read the Official Documentation Site</u> </strong></a>
 </div>
 
 \
 Nxpress (`@nxpress/core`) brings modern frontend developer experience to classic Express.js applications. It introduces **file-based routing**, **nested layouts**, **components**, and **auto-compiling Tailwind CSS** to traditional server-side rendered (SSR) engines like Handlebars, EJS, and HTML.
-
-> 📖 **Official Documentation**: For complete interactive guides, API references, system singletons (`R`, `G`, `E`), and live playgrounds, visit [**nxpress.netlify.app**](https://nxpress.netlify.app/).
 
 ## Features
 
