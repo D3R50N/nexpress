@@ -6,7 +6,9 @@ import fs from "fs";
 import chokidar from "chokidar";
 import { serve, NxpressServerOptions } from "../server";
 import { logger } from "../logger";
-import { getTailwindOutputInfo } from "../tailwind";
+import { getTailwindOutputInfo, compileTailwindCss } from "../tailwind";
+import { registerComponents } from "../components";
+import { spinner } from "@clack/prompts";
 
 function getNxpressVersion(): string {
   try {
@@ -139,16 +141,22 @@ program
     const watcher = chokidar.watch(watchTargets, {
       ignored: [tailwindOutput, "**/*.map"],
       ignoreInitial: true,
-      interval: 100,
+      awaitWriteFinish: {
+        stabilityThreshold: 300,
+        pollInterval: 50,
+      },
     });
-    let isReloading = false; //prevent double reload
-    let reloadCount = 0;
 
-    const triggerReload = (reason: string) => {
+    let isReloading = false; //prevent double reload
+
+    const triggerReload = async (reason: string) => {
       if (isReloading) return;
       isReloading = true;
-      reloadCount++;
-      logger.reload(reason, reloadCount);
+      const s = spinner();
+      s.start(reason);
+
+      // Yield event loop tick so spinner start frame renders
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       if (typeof (currentServer as any).closeAllConnections === "function") {
         (currentServer as any).closeAllConnections();
@@ -179,12 +187,55 @@ program
           oldOptions.port != freshOptions.port,
         );
         oldOptions = freshOptions;
+        s.stop("Server restarted");
         isReloading = false;
       });
     };
 
     watcher.on("all", (event, filePath) => {
-      triggerReload(`File changed \`${path.relative(rootDir, filePath)}\``);
+      const relPath = path.relative(rootDir, filePath);
+      const filename = path.basename(filePath);
+
+      // Full server restart only for config files or route creation/deletion
+      const isConfigFile =
+        filename === ".env" ||
+        filename === "nxpress.config.json" ||
+        filename === "nxpress.config.js";
+
+      const isRouteStructureChange =
+        filePath.startsWith(appDir) && (event === "add" || event === "unlink");
+
+      if (isConfigFile || isRouteStructureChange) {
+        const reason = isConfigFile
+          ? `Config changed \`${relPath}\` → Restarting server...`
+          : `Route structure changed \`${relPath}\` → Restarting server...`;
+        triggerReload(reason);
+        return;
+      }
+
+      // Fast in-place cache invalidation for normal file edits
+      try {
+        const resolved = require.resolve(filePath);
+        delete require.cache[resolved];
+      } catch (e) {}
+      try {
+        delete require.cache[filePath];
+      } catch (e) {}
+      try {
+        if (fs.existsSync(filePath)) {
+          delete require.cache[fs.realpathSync(filePath)];
+        }
+      } catch (e) {}
+
+      if (filePath.startsWith(componentsDir)) {
+        registerComponents(componentsDir);
+      }
+
+      if (filePath === tailwindInput) {
+        compileTailwindCss(rootDir, publicDir, tailwindOptions);
+      }
+
+      logger.info(`File changed \`${relPath}\``);
     });
 
     if (process.stdin.isTTY) {
