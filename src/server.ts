@@ -97,6 +97,28 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
       ...(options.globals || {}),
     };
 
+    const protocol = req.protocol || "http";
+    const host = req.get("host") || "";
+    const fullBaseUrl = host ? `${protocol}://${host}` : "";
+    const full= host
+      ? `${protocol}://${host}${req.originalUrl || req.url}`
+      : req.originalUrl || req.url;
+
+    const requestObj = {
+      url: req.originalUrl || req.url,
+      path: req.path,
+      full,
+      base: fullBaseUrl,
+      method: req.method,
+      query: req.query || {},
+      params: req.params || {},
+      headers: req.headers || {},
+      cookies: (req as any).cookies || {},
+      ip: req.ip,
+      protocol,
+      host,
+    };
+
     res.locals.tailwindCssUrl = tailwindCssUrl;
     res.locals.tailwind = `<link rel="stylesheet" href="${tailwindCssUrl}"/>`;
     res.locals.year = now.getFullYear();
@@ -105,8 +127,8 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     res.locals.env = process.env;
     res.locals.G = globalObj;
     res.locals.global = globalObj;
-    res.locals.R = req;
-    res.locals.req = req;
+    res.locals.R = requestObj;
+    res.locals.req = requestObj;
     res.locals.$ = (name: string, props: Record<string, any> = {}) =>
       renderComponent(name, props, res.locals);
     Object.assign(res.locals, builtinHelpers);

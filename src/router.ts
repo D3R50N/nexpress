@@ -199,6 +199,10 @@ export async function renderPageView(
 
   if (res.headersSent) return;
 
+  if (res.locals.R && typeof res.locals.R === "object") {
+    res.locals.R.params = req.params || {};
+  }
+
   const tailwindCssUrl = res.locals.tailwindCssUrl || "/tailwind.css";
 
   const mergedProps = { ...res.locals, ...pageProps };
