@@ -2,8 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import { globSync } from 'glob';
 import hbs from 'hbs';
-import ejs from 'ejs';
+import { Eta } from 'eta';
+import nunjucks from 'nunjucks';
+import { Liquid } from 'liquidjs';
 import { logger } from './logger';
+
+const etaEngine = new Eta();
+const liquidEngine = new Liquid();
 
 export interface ComponentOptions {
   engine?: string;
@@ -72,7 +77,7 @@ export function registerComponents(componentsDir: string, options: ComponentOpti
     return;
   }
 
-  const files = globSync('**/*.{hbs,html,ejs,pug,mustache,njk}', { cwd: componentsDir });
+  const files = globSync('**/*.{hbs,html,ejs,pug,mustache,njk,nunjucks,liquid}', { cwd: componentsDir });
 
   files.forEach((file) => {
     const fullPath = path.join(componentsDir, file);
@@ -84,8 +89,11 @@ export function registerComponents(componentsDir: string, options: ComponentOpti
     let compileFn: (props: Record<string, any>) => string;
 
     if (ext === '.ejs') {
-      const compiled = ejs.compile(content, { filename: fullPath });
-      compileFn = (props) => compiled(props);
+      compileFn = (props) => etaEngine.renderString(content, props);
+    } else if (ext === '.njk' || ext === '.nunjucks') {
+      compileFn = (props) => nunjucks.renderString(content, props);
+    } else if (ext === '.liquid') {
+      compileFn = (props) => liquidEngine.parseAndRenderSync(content, props);
     } else {
       // Default to Handlebars compilation
       const compiled = hbs.handlebars.compile(content);

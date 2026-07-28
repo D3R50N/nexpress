@@ -11,7 +11,7 @@ import { logger } from "./logger";
 import { compileTailwindCss, TailwindOptions } from "./tailwind";
 import { handleLiveReloadRoute, LIVE_RELOAD_SCRIPT } from "./liveReload";
 
-export type TemplateEngine = "hbs" | "ejs" | "html";
+export type TemplateEngine = "ejs" | "hbs" | "html" | "nunjucks" | "liquid";
 
 export interface NxpressServerOptions {
   rootDir?: string;
@@ -58,13 +58,13 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
   const componentsDir =
     options.componentsDir || path.join(rootDir, "components");
 
-  const rawEngine = options.engine || "hbs";
+  const rawEngine = options.engine || "ejs";
   const engine = rawEngine.toLowerCase() as TemplateEngine;
-  const allowedEngines: TemplateEngine[] = ["hbs", "ejs", "html"];
+  const allowedEngines: TemplateEngine[] = ["ejs", "hbs", "html", "nunjucks", "liquid"];
 
   if (!allowedEngines.includes(engine)) {
     throw new Error(
-      `[nxpress] Unsupported template engine: "${rawEngine}". Allowed engines are: hbs, ejs, html`,
+      `[nxpress] Unsupported template engine: "${rawEngine}". Allowed engines are: ejs, hbs, html, nunjucks, liquid`,
     );
   }
 

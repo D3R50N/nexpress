@@ -3,12 +3,17 @@ import path from "path";
 import { globSync } from "glob";
 import { Express, Request, Response, RequestHandler } from "express";
 import hbs from "hbs";
-import ejs from "ejs";
+import { Eta } from "eta";
+import nunjucks from "nunjucks";
+import { Liquid } from "liquidjs";
 import { createJiti } from "jiti";
 import { logger } from "./logger";
 import { injectTailwindCss } from "./tailwind";
 import { injectLiveReloadScript } from "./liveReload";
 import { isDevMode } from "./env";
+
+const etaEngine = new Eta();
+const liquidEngine = new Liquid();
 
 const jitiLoader = createJiti(__filename, {
   cache: false,
@@ -37,7 +42,7 @@ export interface RouterOptions {
 }
 
 /**
- * Renders a single template file with given props for HBS, EJS, HTML.
+ * Renders a single template file with given props for EJS (Eta), Nunjucks, Liquid, HBS, HTML.
  */
 export function renderTemplateFile(
   filePath: string,
@@ -47,7 +52,15 @@ export function renderTemplateFile(
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === ".ejs") {
-    return ejs.render(content, props, { filename: filePath });
+    return etaEngine.renderString(content, props);
+  }
+
+  if (ext === ".njk" || ext === ".nunjucks") {
+    return nunjucks.renderString(content, props);
+  }
+
+  if (ext === ".liquid") {
+    return liquidEngine.parseAndRenderSync(content, props);
   }
 
   // Handlebars default
@@ -62,7 +75,7 @@ export function findLayoutsForRoute(
   rootDir: string,
   appDir: string,
   templateRelPath: string,
-  engine: string = "hbs",
+  engine: string = "ejs",
 ): string[] {
   const fileExt = path.extname(templateRelPath).toLowerCase();
   const baseName = path.basename(templateRelPath, fileExt);
@@ -75,7 +88,11 @@ export function findLayoutsForRoute(
   // Determine target layout extensions based on engine & file extension
   let targetExts: string[] = [fileExt];
   if (engine === "ejs") {
-    targetExts = [".ejs"];
+    targetExts = [".ejs", ".html"];
+  } else if (engine === "njk" || engine === "nunjucks") {
+    targetExts = [".njk", ".nunjucks", ".html"];
+  } else if (engine === "liquid") {
+    targetExts = [".liquid", ".html"];
   } else if (engine === "hbs") {
     targetExts = [".hbs"];
   } else if (engine === "html") {

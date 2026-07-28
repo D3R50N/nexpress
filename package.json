@@ -1,6 +1,6 @@
 {
   "name": "@nxpress/core",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Express.js framework with file-based routing and template components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -46,20 +46,21 @@
     "chokidar": "^5.0.0",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
-    "ejs": "^6.0.1",
+    "eta": "^4.6.0",
     "express": "^5.2.1",
-    "express-ejs-layouts": "^2.5.1",
     "express-handlebars": "^9.0.1",
     "glob": "^13.0.6",
     "hbs": "^4.2.1",
     "jiti": "^2.7.0",
+    "liquidjs": "^10.27.2",
+    "nunjucks": "^3.2.4",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@types/ejs": "^3.1.5",
     "@types/express": "^5.0.6",
     "@types/hbs": "^4.0.5",
     "@types/node": "^26.1.2",
+    "@types/nunjucks": "^3.2.6",
     "nodemon": "^3.1.14",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2"

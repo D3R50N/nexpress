@@ -14,8 +14,8 @@
     },
     "engine": {
       "type": "string",
-      "enum": ["hbs", "ejs", "html"],
-      "default": "hbs",
+      "enum": ["ejs", "hbs", "html", "nunjucks", "liquid"],
+      "default": "ejs",
       "description": "Template engine to use for SSR rendering"
     },
     "appDir": {
