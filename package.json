@@ -1,6 +1,6 @@
 {
   "name": "@nxpress/core",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "description": "Express.js framework with file-based routing and template components",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,7 @@
     "nxpress": "./dist/bin/nxpress.js"
   },
   "repository": {
-    "url": "https://github.com/D3R50N/nexpress"
+    "url": "https://github.com/D3R50N/nxpress"
   },
   "scripts": {
     "build": "tsc",

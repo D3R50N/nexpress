@@ -36,7 +36,7 @@ program
   .description(
     "Next.js-like Express framework with file routing & template components",
   )
-  .version(getNxpressVersion(),"-v, --version");
+  .version(getNxpressVersion(), "-v, --version");
 
 import { createJiti } from "jiti";
 
@@ -304,6 +304,7 @@ program
   .option("-r, --root-dir <dir>", "Custom root directory")
   .action((cmdOptions) => {
     const options = resolveServerOptions(cmdOptions);
+    options.isDev = false;
     serve(options);
   });
 
