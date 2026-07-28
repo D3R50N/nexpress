@@ -149,12 +149,29 @@ program
       isReloading = true;
       reloadCount++;
       logger.reload(reason, reloadCount);
+
+      if (typeof (currentServer as any).closeAllConnections === "function") {
+        (currentServer as any).closeAllConnections();
+      }
+      if (typeof (currentServer as any).closeIdleConnections === "function") {
+        (currentServer as any).closeIdleConnections();
+      }
+
       currentServer.close(() => {
+        const realRootDir = fs.existsSync(rootDir)
+          ? fs.realpathSync(rootDir)
+          : rootDir;
+
         Object.keys(require.cache).forEach((key) => {
-          if (key.startsWith(rootDir)) {
+          if (
+            key.startsWith(rootDir) ||
+            key.startsWith(realRootDir) ||
+            (fs.existsSync(key) && fs.realpathSync(key).startsWith(realRootDir))
+          ) {
             delete require.cache[key];
           }
         });
+
         const freshOptions = resolveServerOptions(cmdOptions);
 
         currentServer = serve(

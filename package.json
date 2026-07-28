@@ -51,6 +51,7 @@
     "express-handlebars": "^9.0.1",
     "glob": "^13.0.6",
     "hbs": "^4.2.1",
+    "jiti": "^2.7.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

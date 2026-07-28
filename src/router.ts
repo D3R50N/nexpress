@@ -4,8 +4,14 @@ import { globSync } from "glob";
 import { Express, Request, Response, RequestHandler } from "express";
 import hbs from "hbs";
 import ejs from "ejs";
+import { createJiti } from "jiti";
 import { logger } from "./logger";
 import { injectTailwindCss } from "./tailwind";
+
+const jitiLoader = createJiti(__filename, {
+  cache: false,
+  requireCache: false,
+});
 
 export interface NxpressDataModule {
   props?: (
@@ -196,30 +202,50 @@ export function registerRoutes(
     const routePath = fileToRoutePath(templateFile);
     const viewPath = templateFile.replace(/\.[^.]+$/, "");
 
-    const companionTsFile = templateFile.replace(/\.[^.]+$/, ".ts");
-    const companionJsFile = templateFile.replace(/\.[^.]+$/, ".js");
-
-    let companionFullPath: string | null = null;
-    if (fs.existsSync(path.resolve(appDir, companionTsFile))) {
-      companionFullPath = path.resolve(appDir, companionTsFile);
-    } else if (fs.existsSync(path.resolve(appDir, companionJsFile))) {
-      companionFullPath = path.resolve(appDir, companionJsFile);
-    }
-
     const handler: RequestHandler = async (req: Request, res: Response) => {
       let pageProps: Record<string, any> = {};
 
-      if (companionFullPath) {
-        try {
-          delete require.cache[require.resolve(companionFullPath)];
-          const dataModule: NxpressDataModule = require(companionFullPath);
+      const companionTsFile = path.resolve(
+        appDir,
+        templateFile.replace(/\.[^.]+$/, ".ts"),
+      );
+      const companionJsFile = path.resolve(
+        appDir,
+        templateFile.replace(/\.[^.]+$/, ".js"),
+      );
 
+      let companionPath: string | null = null;
+      if (fs.existsSync(companionTsFile)) {
+        companionPath = companionTsFile;
+      } else if (fs.existsSync(companionJsFile)) {
+        companionPath = companionJsFile;
+      }
+
+      if (companionPath) {
+        try {
+          let dataModule: any;
+          try {
+            dataModule = await jitiLoader.import(companionPath);
+          } catch (importErr) {
+            dataModule = jitiLoader(companionPath);
+          }
+
+          let propsFn: any = null;
           if (typeof dataModule.props === "function") {
-            pageProps = await dataModule.props(req, res);
+            propsFn = dataModule.props;
+          } else if (
+            dataModule.default &&
+            typeof dataModule.default.props === "function"
+          ) {
+            propsFn = dataModule.default.props;
           } else if (typeof dataModule.default === "function") {
-            pageProps = await dataModule.default(req, res);
+            propsFn = dataModule.default;
           } else if (typeof dataModule === "function") {
-            pageProps = await (dataModule as Function)(req, res);
+            propsFn = dataModule;
+          }
+
+          if (propsFn) {
+            pageProps = await propsFn(req, res);
           }
         } catch (err) {
           logger.error(
