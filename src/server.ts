@@ -9,6 +9,7 @@ import { registerRoutes } from "./router";
 
 import { logger } from "./logger";
 import { compileTailwindCss, TailwindOptions } from "./tailwind";
+import { handleLiveReloadRoute, LIVE_RELOAD_SCRIPT } from "./liveReload";
 
 export type TemplateEngine = "hbs" | "ejs" | "html";
 
@@ -22,6 +23,7 @@ export interface NxpressServerOptions {
   port?: number;
   tailwind?: boolean | TailwindOptions;
   globals?: Record<string, any>;
+  isDev?: boolean;
 }
 
 /**
@@ -136,12 +138,19 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     next();
   });
 
+  app.get("/nxpress/live-reload", handleLiveReloadRoute);
+
   if (fs.existsSync(publicDir)) {
     app.use(express.static(publicDir));
   }
 
   registerComponents(componentsDir);
-  registerRoutes(app, appDir, { engine, globals: options.globals, rootDir });
+  registerRoutes(app, appDir, {
+    engine,
+    globals: options.globals,
+    rootDir,
+    isDev: options.isDev,
+  });
 
   return app;
 }

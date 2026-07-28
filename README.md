@@ -16,12 +16,15 @@ Nxpress (`@nxpress/core`) brings modern frontend developer experience to classic
 - **File-Based Routing:** Define your routes naturally by placing files in an `app/` or `pages/` directory.
 - **Nested Layouts:** Share UI across routes with nested `layout.<ext>` files, just like Next.js App Router.
 - **Custom Error Pages:** Easily define custom `app/404.<ext>` and `app/500.<ext>` error pages with optional companion `.ts` data loaders.
+- **Live Reload (SSE):** Automatic browser reloading on file edits via Server-Sent Events (`/nxpress/live-reload`).
+- **Smart Dev Server:** Instant in-memory cache invalidation without full HTTP server restarts for view and companion edits.
+- **Clean Console Logging:** Automatic deduplication of consecutive duplicate CLI logs and `@clack/prompts` progress spinners.
 - **Smart Components:** Drop reusable components in a `components/` folder and render them anywhere, case-insensitively.
 - **Tailwind CSS Built-In:** Zero-config Tailwind CSS v4 support. Hot-reloads on input CSS (`app.css`) edits automatically.
 - **Instant Companion HMR:** Fetch and provide data via companion `.ts` files exporting `props(req, res)` with zero-staleness `jiti` reloading.
 - **Clean Request Context (`R`):** Access `R` (or `req`) safely in views (`R.url`, `R.path`, `R.base`, `R.full`, `R.query`, `R.params`, `R.method`, `R.headers`, `R.cookies`, `R.ip`, `R.protocol`, `R.host`).
 - **Auto Globals & Helpers:** Comes with rich globals (`env`, `year`, `now`, `G`) and extensive template helpers built right in.
-- **CLI Included:** Built-in `nxpress dev` for live-reloading and `nxpress start` for production.
+- **CLI Included:** Built-in `nxpress dev` (with manual `r` key restart) and `nxpress start` for production.
 
 ---
 
@@ -207,6 +210,16 @@ Nxpress automatically injects useful context into your templates:
 ### 6. Tailwind CSS Integration
 
 Tailwind CSS v4 is automatically compiled and injected into the `<head>` tag when rendering pages wrapped in a layout. Hot reloading watches `app.css` edits automatically.
+
+### 7. Browser Live Reloading (SSE)
+
+Nxpress automatically injects a lightweight Server-Sent Events (SSE) script during development. When any template, companion file, or stylesheet is edited, the server sends a reload signal to `/nxpress/live-reload` and the browser reloads instantly.
+
+### 8. Smart Dev Server & Keyboard Shortcuts
+
+- **Instant In-Memory Reloads:** Edits to templates, companion `.ts` files, or CSS clear in-memory caches without restarting the HTTP server.
+- **Full Server Restarts:** Only triggered when server configuration (`nxpress.config.json`, `.env`) or file-based route structures change.
+- **Manual Restart Shortcut:** Press `r` in the CLI terminal at any time to trigger a full manual server restart.
 
 ## Programmatic Usage
 

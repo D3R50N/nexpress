@@ -9,6 +9,7 @@ import { logger } from "../logger";
 import { getTailwindOutputInfo, compileTailwindCss } from "../tailwind";
 import { registerComponents } from "../components";
 import { spinner } from "@clack/prompts";
+import { notifyLiveReload } from "../liveReload";
 
 function getNxpressVersion(): string {
   try {
@@ -37,24 +38,49 @@ program
   )
   .version(getNxpressVersion(),"-v, --version");
 
+import { createJiti } from "jiti";
+
+const jitiLoader = createJiti(__filename, {
+  cache: false,
+  requireCache: false,
+});
+
 function loadConfigFile(rootDir: string): Record<string, any> {
   const jsonConfig = path.join(rootDir, "nxpress.config.json");
   if (fs.existsSync(jsonConfig)) {
     try {
+      delete require.cache[jsonConfig];
       return JSON.parse(fs.readFileSync(jsonConfig, "utf8"));
     } catch (e) {
       logger.warn("Failed to parse nxpress.config.json");
     }
   }
 
-  const jsConfig = path.join(rootDir, "nxpress.config.js");
-  if (fs.existsSync(jsConfig)) {
-    try {
-      delete require.cache[require.resolve(jsConfig)];
-      const loaded = require(jsConfig);
-      return loaded.default || loaded;
-    } catch (e) {
-      logger.warn("Failed to load nxpress.config.js");
+  const jsConfigCandidates = [
+    path.join(rootDir, "nxpress.config.js"),
+    path.join(rootDir, "nxpress.config.ts"),
+    path.join(rootDir, "nxpress.config.mjs"),
+    path.join(rootDir, "nxpress.config.cjs"),
+  ];
+
+  for (const jsConfig of jsConfigCandidates) {
+    if (fs.existsSync(jsConfig)) {
+      try {
+        try {
+          delete require.cache[require.resolve(jsConfig)];
+        } catch (e) {}
+        try {
+          delete require.cache[jsConfig];
+        } catch (e) {}
+        try {
+          delete require.cache[fs.realpathSync(jsConfig)];
+        } catch (e) {}
+
+        const loaded = jitiLoader(jsConfig);
+        return loaded.default || loaded;
+      } catch (e) {
+        logger.warn(`Failed to load ${path.basename(jsConfig)}`);
+      }
     }
   }
 
@@ -142,8 +168,8 @@ program
       ignored: [tailwindOutput, "**/*.map"],
       ignoreInitial: true,
       awaitWriteFinish: {
-        stabilityThreshold: 300,
-        pollInterval: 50,
+        stabilityThreshold: 100,
+        pollInterval: 25,
       },
     });
 
@@ -158,6 +184,7 @@ program
       // Yield event loop tick so spinner start frame renders
       await new Promise((resolve) => setTimeout(resolve, 100));
 
+      notifyLiveReload();
       if (typeof (currentServer as any).closeAllConnections === "function") {
         (currentServer as any).closeAllConnections();
       }
@@ -188,19 +215,28 @@ program
         );
         oldOptions = freshOptions;
         s.stop("Server restarted");
+        notifyLiveReload();
         isReloading = false;
       });
     };
 
     watcher.on("all", (event, filePath) => {
-      const relPath = path.relative(rootDir, filePath);
       const filename = path.basename(filePath);
+
+      // Ignore compiled CSS output file to prevent double reloads
+      if (
+        filePath === tailwindOutput ||
+        path.resolve(filePath) === path.resolve(tailwindOutput) ||
+        filename === "tailwind.css"
+      ) {
+        return;
+      }
+
+      const relPath = path.relative(rootDir, filePath);
 
       // Full server restart only for config files or route creation/deletion
       const isConfigFile =
-        filename === ".env" ||
-        filename === "nxpress.config.json" ||
-        filename === "nxpress.config.js";
+        filename === ".env" || filename.startsWith("nxpress.config.");
 
       const isRouteStructureChange =
         filePath.startsWith(appDir) && (event === "add" || event === "unlink");
@@ -231,11 +267,12 @@ program
         registerComponents(componentsDir);
       }
 
-      if (filePath === tailwindInput) {
+      if (options.tailwind !== false) {
         compileTailwindCss(rootDir, publicDir, tailwindOptions);
       }
 
       logger.info(`File changed \`${relPath}\``);
+      notifyLiveReload();
     });
 
     if (process.stdin.isTTY) {

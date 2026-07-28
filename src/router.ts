@@ -7,6 +7,8 @@ import ejs from "ejs";
 import { createJiti } from "jiti";
 import { logger } from "./logger";
 import { injectTailwindCss } from "./tailwind";
+import { injectLiveReloadScript } from "./liveReload";
+import { isDevMode } from "./env";
 
 const jitiLoader = createJiti(__filename, {
   cache: false,
@@ -31,6 +33,7 @@ export interface RouterOptions {
   pagesDir?: string;
   engine?: string;
   globals?: Record<string, any>;
+  isDev?: boolean;
 }
 
 /**
@@ -205,7 +208,7 @@ export async function renderPageView(
 
   const tailwindCssUrl = res.locals.tailwindCssUrl || "/tailwind.css";
 
-  const mergedProps = { ...res.locals, ...pageProps };
+  const mergedProps = { ...options.globals, ...res.locals, ...pageProps };
   const systemReservedKeys = [
     "G",
     "global",
@@ -243,11 +246,19 @@ export async function renderPageView(
       });
     }
 
-    res.send(injectTailwindCss(renderedHtml, tailwindCssUrl));
-  } catch (err) {
+    let finalHtml = injectTailwindCss(renderedHtml, tailwindCssUrl);
+    if (isDevMode(options)) {
+      finalHtml = injectLiveReloadScript(finalHtml);
+    }
+    res.send(finalHtml);
+  } catch (err: any) {
     logger.error(`Error rendering page/layout for ${templateFile}:`, err);
     if (!res.headersSent) {
-      res.status(500).send("Internal Server Error");
+      if (isDevMode(options)) {
+        res.status(500).send(formatDev500ErrorHtml(err));
+      } else {
+        res.status(500).send("Internal Server Error");
+      }
     }
   }
 }
@@ -347,10 +358,18 @@ export function registerRoutes(
     });
 
     if (custom404) {
-      return renderPageView(req, res, custom404, 404, {}, options, appDir);
+      return renderPageView(
+        req,
+        res,
+        custom404,
+        404,
+        { title: "404" },
+        options,
+        appDir,
+      );
     }
 
-    res.status(404).send(`<!DOCTYPE html>
+    let html404 = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -363,7 +382,11 @@ export function registerRoutes(
     <p style="font-size: 1.75rem; font-weight: 600; color: #02FAFC; margin-top: 0.5rem; opacity: 0.9;">Page Not Found</p>
   </div>
 </body>
-</html>`);
+</html>`;
+    if (isDevMode(options)) {
+      html404 = injectLiveReloadScript(html404);
+    }
+    res.status(404).send(html404);
   });
 
   // 4. Global 500 Error Handler
@@ -382,13 +405,17 @@ export function registerRoutes(
         res,
         custom500,
         500,
-        { error: err?.message || String(err) },
+        { title: "500", error: err?.message || String(err) },
         options,
         appDir,
       );
     }
 
-    res.status(500).send(`<!DOCTYPE html>
+    if (isDevMode(options)) {
+      return res.status(500).send(formatDev500ErrorHtml(err));
+    }
+
+    let html500 = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -401,6 +428,98 @@ export function registerRoutes(
     <p style="font-size: 1.75rem; font-weight: 600; color: #02FAFC; margin-top: 0.5rem; opacity: 0.9;">Internal Server Error</p>
   </div>
 </body>
-</html>`);
+</html>`;
+    res.status(500).send(html500);
   });
+}
+
+function escapeHtml(str: string): string {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatDev500ErrorHtml(err: any): string {
+  const message = err?.message || String(err || "Unknown Error");
+  const stack = err?.stack || String(err || "");
+  const name = err?.name || "Runtime Error";
+
+  let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(name)} - ${escapeHtml(message)}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0b0f19;
+      color: #f8fafc;
+      margin: 0;
+      padding: 2rem;
+      box-sizing: border-box;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      width: 100%;
+      max-width: 900px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #02FAFC;
+      margin: 0 0 1rem 0;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    pre {
+      background: #030712;
+      border: 1px solid #1f2937;
+      color: #cbd5e1;
+      padding: 1.25rem;
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">500 ${escapeHtml(name)}</span>
+    <h1>${escapeHtml(message)}</h1>
+    <pre>${escapeHtml(stack)}</pre>
+  </div>
+</body>
+</html>`;
+
+  return injectLiveReloadScript(html);
 }
