@@ -15,17 +15,27 @@ Nxpress (`@nxpress/core`) brings modern frontend developer experience to classic
 
 - **File-Based Routing:** Define your routes naturally by placing files in an `app/` or `pages/` directory.
 - **Nested Layouts:** Share UI across routes with nested `layout.<ext>` files, just like Next.js App Router.
+- **Custom Error Pages:** Easily define custom `app/404.<ext>` and `app/500.<ext>` error pages with optional companion `.ts` data loaders.
 - **Smart Components:** Drop reusable components in a `components/` folder and render them anywhere, case-insensitively.
-- **Tailwind CSS Built-In:** Zero-config Tailwind CSS v4 support. Just run the dev server and your CSS is compiled automatically.
-- **Data Loading:** Fetch and provide data securely via companion `.ts` files exporting a `props(req, res)` function.
-- **Auto Globals & Helpers:** Comes with rich globals (`env`, `year`, `req`) and extensive template helpers built right in.
+- **Tailwind CSS Built-In:** Zero-config Tailwind CSS v4 support. Hot-reloads on input CSS (`app.css`) edits automatically.
+- **Instant Companion HMR:** Fetch and provide data via companion `.ts` files exporting `props(req, res)` with zero-staleness `jiti` reloading.
+- **Clean Request Context (`R`):** Access `R` (or `req`) safely in views (`R.url`, `R.path`, `R.base`, `R.full`, `R.query`, `R.params`, `R.method`, `R.headers`, `R.cookies`, `R.ip`, `R.protocol`, `R.host`).
+- **Auto Globals & Helpers:** Comes with rich globals (`env`, `year`, `now`, `G`) and extensive template helpers built right in.
 - **CLI Included:** Built-in `nxpress dev` for live-reloading and `nxpress start` for production.
 
 ---
 
-## Installation
+## Installation & Scaffolding
 
-Install Nxpress locally or globally:
+Scaffold a new project using `create-nxpress-app`:
+
+```bash
+npx create-nxpress-app
+```
+
+During scaffolding, choose your package manager (`pnpm` by default, `npm`, `yarn`, `bun`, `deno`). Dependencies are installed automatically.
+
+Or install Nxpress manually:
 
 ```bash
 # Local installation
@@ -90,6 +100,8 @@ my-nxpress-app/
 │   ├── layout.hbs       # Root layout file
 │   ├── index.hbs        # Renders the homepage (/)
 │   ├── index.ts         # Server-side data loader for homepage
+│   ├── 404.hbs          # Custom 404 Not Found page
+│   ├── 500.hbs          # Custom 500 Internal Server Error page
 │   ├── products/
 │   │   ├── layout.hbs   # Nested layout for /products/*
 │   │   ├── [id].hbs     # Dynamic route (e.g., /products/123)
@@ -128,13 +140,20 @@ Place an `index.hbs` in `app/` to map to `/`.
 Place a file in `app/about/index.hbs` or `app/about.hbs` to map to `/about`.
 Create a `layout.hbs` in any directory. The layout wraps all templates inside its folder and subfolders using the `{{{body}}}` tag.
 
-### 2. Server-Side Data Fetching
+### 2. Custom Error Pages (404 & 500)
+
+Nxpress automatically handles custom error pages:
+
+- **404 Not Found:** Place `404.hbs` (or `404.ejs`/`404.html`) in `app/`. Optionally add `404.ts` for companion data.
+- **500 Server Error:** Place `500.hbs` (or `500.ejs`/`500.html`) in `app/`. Optionally add `500.ts` for companion data.
+
+### 3. Server-Side Data Fetching
 
 Next to any template, create a TypeScript file with the same name. Export a `props` function to inject data into the view.
 
 ```typescript
 // app/products/[id].ts
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 export async function props(req: Request, res: Response) {
   const product = await db.getProduct(req.params.id);
@@ -147,7 +166,7 @@ export async function props(req: Request, res: Response) {
 }
 ```
 
-### 3. Using Components
+### 4. Using Components
 
 Place a `Navbar.hbs` in `components/`. You can render it in any view, passing arguments as needed.
 
@@ -163,22 +182,31 @@ Place a `Navbar.hbs` in `components/`. You can render it in any view, passing ar
 <%- $('Navbar', { title: 'Home Page', user: user }) %>
 ```
 
-### 4. Global Variables & Helpers
+### 5. Global Variables & Clean Request Context (`R`)
 
 Nxpress automatically injects useful context into your templates:
 
+- `R` or `req`: A clean, non-circular request object:
+  - `R.url`: Relative URL path & query (e.g., `"/products?sort=asc"`)
+  - `R.path`: Relative path (e.g., `"/products"`)
+  - `R.base`: Base URL origin (e.g., `"http://localhost:3000"`)
+  - `R.full`: Full absolute URL (e.g., `"http://localhost:3000/products?sort=asc"`)
+  - `R.method`: HTTP method (e.g., `"GET"`)
+  - `R.query`: Parsed query parameters object
+  - `R.params`: Parsed route parameters object
+  - `R.headers`: Request headers
+  - `R.cookies`: Request cookies
+  - `R.ip`: Client IP address
+  - `R.protocol`: Protocol (`"http"` / `"https"`)
+  - `R.host`: Host header (`"localhost:3000"`)
 - `G` or `global`: Values defined in `nxpress.config.json` globals.
 - `E` or `env`: Process environment variables.
-- `R` or `req`: Express request object.
 - `tailwind`: Automatic Tailwind CSS `<link>` tag.
 - `year`, `now`: Date utilities.
 
-### 5. Tailwind CSS Injection
+### 6. Tailwind CSS Integration
 
-Tailwind CSS is automatically compiled and injected into the `<head>` tag when rendering pages wrapped in a layout.
-
-- **Opt-out of Tailwind on a specific page:** Ensure the page does not use a layout.
-- **Manual injection:** Add `{{{tailwind}}}` (Handlebars) or `<%- tailwind %>` (EJS) inside your `<head>` tag.
+Tailwind CSS v4 is automatically compiled and injected into the `<head>` tag when rendering pages wrapped in a layout. Hot reloading watches `app.css` edits automatically.
 
 ## Programmatic Usage
 
@@ -219,8 +247,6 @@ app.use((req, res, next) => {
 // Add custom routes
 app.get('/custom-route', (req, res) => {
   res.json({ message: 'Hello from custom route!' });
-});
-
 app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
 });
