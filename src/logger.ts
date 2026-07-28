@@ -19,7 +19,7 @@ export const logger = {
   info(...args: any[]): void {
     const message = args.join(" ");
     const key = `info:${message}`;
-    logDeduplicated(key, () => console.log(PREFIX, chalk.blue(message)));
+    logDeduplicated(key, () => console.log(PREFIX, chalk.cyan(message)));
   },
 
   success(...args: any[]): void {

@@ -174,15 +174,11 @@ program
     });
 
     let isReloading = false; //prevent double reload
+    let reloadTimer: NodeJS.Timeout | null = null;
 
     const triggerReload = async (reason: string) => {
       if (isReloading) return;
       isReloading = true;
-      const s = spinner();
-      s.start(reason);
-
-      // Yield event loop tick so spinner start frame renders
-      await new Promise((resolve) => setTimeout(resolve, 100));
 
       notifyLiveReload();
       if (typeof (currentServer as any).closeAllConnections === "function") {
@@ -214,10 +210,17 @@ program
           oldOptions.port != freshOptions.port,
         );
         oldOptions = freshOptions;
-        s.stop("Server restarted");
+        logger.warn(`${reason} → Server restarted`);
         notifyLiveReload();
         isReloading = false;
       });
+    };
+
+    const debouncedTriggerReload = (reason: string) => {
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => {
+        triggerReload(reason);
+      }, 150);
     };
 
     watcher.on("all", (event, filePath) => {
@@ -243,9 +246,9 @@ program
 
       if (isConfigFile || isRouteStructureChange) {
         const reason = isConfigFile
-          ? `Config changed \`${relPath}\` → Restarting server...`
-          : `Route structure changed \`${relPath}\` → Restarting server...`;
-        triggerReload(reason);
+          ? `Config changed \`${relPath}\``
+          : `Route structure changed \`${relPath}\``;
+        debouncedTriggerReload(reason);
         return;
       }
 
