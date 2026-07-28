@@ -132,6 +132,123 @@ export function fileToRoutePath(relPath: string): string {
 }
 
 /**
+ * Renders a page view with its companion file, layout, and props.
+ */
+export async function renderPageView(
+  req: Request,
+  res: Response,
+  templateFile: string,
+  statusCode: number = 200,
+  extraProps: Record<string, any> = {},
+  options: RouterOptions = {},
+  appDir: string = "",
+): Promise<void> {
+  res.status(statusCode);
+
+  const rootDir = options.rootDir || process.cwd();
+  const engine = options.engine || "hbs";
+  let pageProps: Record<string, any> = { ...extraProps };
+
+  const companionTsFile = path.resolve(
+    appDir,
+    templateFile.replace(/\.[^.]+$/, ".ts"),
+  );
+  const companionJsFile = path.resolve(
+    appDir,
+    templateFile.replace(/\.[^.]+$/, ".js"),
+  );
+
+  let companionPath: string | null = null;
+  if (fs.existsSync(companionTsFile)) {
+    companionPath = companionTsFile;
+  } else if (fs.existsSync(companionJsFile)) {
+    companionPath = companionJsFile;
+  }
+
+  if (companionPath) {
+    try {
+      let dataModule: any;
+      try {
+        dataModule = await jitiLoader.import(companionPath);
+      } catch (importErr) {
+        dataModule = jitiLoader(companionPath);
+      }
+
+      let propsFn: any = null;
+      if (typeof dataModule.props === "function") {
+        propsFn = dataModule.props;
+      } else if (
+        dataModule.default &&
+        typeof dataModule.default.props === "function"
+      ) {
+        propsFn = dataModule.default.props;
+      } else if (typeof dataModule.default === "function") {
+        propsFn = dataModule.default;
+      } else if (typeof dataModule === "function") {
+        propsFn = dataModule;
+      }
+
+      if (propsFn) {
+        const result = await propsFn(req, res);
+        pageProps = { ...pageProps, ...result };
+      }
+    } catch (err) {
+      logger.error(`Error executing companion file for ${templateFile}:`, err);
+    }
+  }
+
+  if (res.headersSent) return;
+
+  const tailwindCssUrl = res.locals.tailwindCssUrl || "/tailwind.css";
+
+  const mergedProps = { ...res.locals, ...pageProps };
+  const systemReservedKeys = [
+    "G",
+    "global",
+    "R",
+    "req",
+    "E",
+    "env",
+    "$",
+    "tailwind",
+  ];
+  for (const key of systemReservedKeys) {
+    if (key in pageProps) {
+      logger.warn(
+        `Reserved key "${key}" in props() was overridden by system.`,
+      );
+    }
+    mergedProps[key] = res.locals[key];
+  }
+
+  const templateFullPath = path.resolve(appDir, templateFile);
+  const layouts = findLayoutsForRoute(rootDir, appDir, templateFile, engine);
+
+  const viewPath = templateFile.replace(/\.[^.]+$/, "");
+  if (layouts.length === 0) {
+    return res.render(viewPath, mergedProps);
+  }
+
+  try {
+    let renderedHtml = renderTemplateFile(templateFullPath, mergedProps);
+
+    for (const layoutPath of layouts) {
+      renderedHtml = renderTemplateFile(layoutPath, {
+        ...mergedProps,
+        body: renderedHtml,
+      });
+    }
+
+    res.send(injectTailwindCss(renderedHtml, tailwindCssUrl));
+  } catch (err) {
+    logger.error(`Error rendering page/layout for ${templateFile}:`, err);
+    if (!res.headersSent) {
+      res.status(500).send("Internal Server Error");
+    }
+  }
+}
+
+/**
  * Registers all file-based routes from the app directory onto an Express app.
  */
 export function registerRoutes(
@@ -194,111 +311,92 @@ export function registerRoutes(
   });
 
   // 2. Register Page View Routes
-  const templateFiles = pageFiles.filter(
-    (f) => !f.endsWith(".js") && !f.endsWith(".ts"),
-  );
+  const templateFiles = pageFiles.filter((f) => {
+    if (f.endsWith(".js") || f.endsWith(".ts")) return false;
+    const base = path.basename(f, path.extname(f));
+    return base !== "404" && base !== "500" && base !== "not-found" && base !== "error";
+  });
 
   templateFiles.forEach((templateFile) => {
     const routePath = fileToRoutePath(templateFile);
-    const viewPath = templateFile.replace(/\.[^.]+$/, "");
 
     const handler: RequestHandler = async (req: Request, res: Response) => {
-      let pageProps: Record<string, any> = {};
-
-      const companionTsFile = path.resolve(
-        appDir,
-        templateFile.replace(/\.[^.]+$/, ".ts"),
-      );
-      const companionJsFile = path.resolve(
-        appDir,
-        templateFile.replace(/\.[^.]+$/, ".js"),
-      );
-
-      let companionPath: string | null = null;
-      if (fs.existsSync(companionTsFile)) {
-        companionPath = companionTsFile;
-      } else if (fs.existsSync(companionJsFile)) {
-        companionPath = companionJsFile;
-      }
-
-      if (companionPath) {
-        try {
-          let dataModule: any;
-          try {
-            dataModule = await jitiLoader.import(companionPath);
-          } catch (importErr) {
-            dataModule = jitiLoader(companionPath);
-          }
-
-          let propsFn: any = null;
-          if (typeof dataModule.props === "function") {
-            propsFn = dataModule.props;
-          } else if (
-            dataModule.default &&
-            typeof dataModule.default.props === "function"
-          ) {
-            propsFn = dataModule.default.props;
-          } else if (typeof dataModule.default === "function") {
-            propsFn = dataModule.default;
-          } else if (typeof dataModule === "function") {
-            propsFn = dataModule;
-          }
-
-          if (propsFn) {
-            pageProps = await propsFn(req, res);
-          }
-        } catch (err) {
-          logger.error(
-            `Error executing companion file for ${templateFile}:`,
-            err,
-          );
-          return res.status(500).send("Internal Server Error");
-        }
-      }
-
-      if (res.headersSent) return;
-
-      const tailwindCssUrl = res.locals.tailwindCssUrl || "/tailwind.css";
-      delete res.locals.tailwindCssUrl;
-
-      const mergedProps = { ...res.locals, ...pageProps };
-      const systemReservedKeys = ['G', 'global', 'R', 'req', 'E', 'env', '$', 'tailwind'];
-      for (const key of systemReservedKeys) {
-        if (key in pageProps) {
-          logger.warn(`Reserved key "${key}" in props() was overridden by system.`);
-        }
-        mergedProps[key] = res.locals[key];
-      }
-      const templateFullPath = path.resolve(appDir, templateFile);
-      const layouts = findLayoutsForRoute(
-        rootDir,
-        appDir,
-        templateFile,
-        engine,
-      );
-
-      if (layouts.length === 0) {
-        return res.render(viewPath, mergedProps);
-      }
-
       try {
-        let renderedHtml = renderTemplateFile(templateFullPath, mergedProps);
-
-        // Wrap from innermost to outermost layout
-        for (const layoutPath of layouts) {
-          renderedHtml = renderTemplateFile(layoutPath, {
-            ...mergedProps,
-            body: renderedHtml,
-          });
-        }
-
-        res.send(injectTailwindCss(renderedHtml, tailwindCssUrl));
+        await renderPageView(req, res, templateFile, 200, {}, options, appDir);
       } catch (err) {
-        logger.error(`Error rendering page/layout for ${templateFile}:`, err);
-        res.status(500).send("Internal Server Error");
+        logger.error(`Error handling route ${routePath}:`, err);
+        if (!res.headersSent) {
+          res.status(500).send("Internal Server Error");
+        }
       }
     };
 
     app.get(routePath, handler);
+  });
+
+  // 3. Catch-all 404 Handler
+  app.use(async (req: Request, res: Response) => {
+    const custom404 = pageFiles.find((f) => {
+      if (f.endsWith(".js") || f.endsWith(".ts")) return false;
+      const base = path.basename(f, path.extname(f));
+      return base === "404" || base === "not-found";
+    });
+
+    if (custom404) {
+      return renderPageView(req, res, custom404, 404, {}, options, appDir);
+    }
+
+    res.status(404).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 Not Found</title>
+</head>
+<body style="font-family: system-ui, -apple-system, sans-serif; background: #000000; color: #02FAFC; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0;">
+  <div style="text-align: center;">
+    <h1 style="font-size: 6rem; font-weight: 900; margin: 0; color: #02FAFC; letter-spacing: -0.05em;">404</h1>
+    <p style="font-size: 1.75rem; font-weight: 600; color: #02FAFC; margin-top: 0.5rem; opacity: 0.9;">Page Not Found</p>
+  </div>
+</body>
+</html>`);
+  });
+
+  // 4. Global 500 Error Handler
+  app.use(async (err: any, req: Request, res: Response, next: any) => {
+    logger.error("Server Error:", err);
+
+    const custom500 = pageFiles.find((f) => {
+      if (f.endsWith(".js") || f.endsWith(".ts")) return false;
+      const base = path.basename(f, path.extname(f));
+      return base === "500" || base === "error";
+    });
+
+    if (custom500) {
+      return renderPageView(
+        req,
+        res,
+        custom500,
+        500,
+        { error: err?.message || String(err) },
+        options,
+        appDir,
+      );
+    }
+
+    res.status(500).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>500 Internal Server Error</title>
+</head>
+<body style="font-family: system-ui, -apple-system, sans-serif; background: #000000; color: #02FAFC; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0;">
+  <div style="text-align: center;">
+    <h1 style="font-size: 6rem; font-weight: 900; margin: 0; color: #02FAFC; letter-spacing: -0.05em;">500</h1>
+    <p style="font-size: 1.75rem; font-weight: 600; color: #02FAFC; margin-top: 0.5rem; opacity: 0.9;">Internal Server Error</p>
+  </div>
+</body>
+</html>`);
   });
 }
