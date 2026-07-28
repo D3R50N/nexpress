@@ -6,6 +6,7 @@ import fs from "fs";
 import chokidar from "chokidar";
 import { serve, NxpressServerOptions } from "../server";
 import { logger } from "../logger";
+import { getTailwindOutputInfo } from "../tailwind";
 
 function getNxpressVersion(): string {
   try {
@@ -32,7 +33,7 @@ program
   .description(
     "Next.js-like Express framework with file routing & template components",
   )
-  .version(getNxpressVersion());
+  .version(getNxpressVersion(),"-v, --version");
 
 function loadConfigFile(rootDir: string): Record<string, any> {
   const jsonConfig = path.join(rootDir, "nxpress.config.json");
@@ -113,17 +114,30 @@ program
       options.componentsDir || path.join(rootDir, "components");
     const publicDir = options.publicDir || path.join(rootDir, "public");
 
+    const tailwindOptions =
+      typeof options.tailwind === "object" ? options.tailwind : {};
+    const tailwindInput = tailwindOptions.input
+      ? path.resolve(rootDir, tailwindOptions.input)
+      : path.join(rootDir, "app.css");
+
+    const { outputCss: tailwindOutput } = getTailwindOutputInfo(
+      rootDir,
+      publicDir,
+      tailwindOptions,
+    );
+
     const watchTargets = [
       appDir,
       componentsDir,
       publicDir,
+      tailwindInput,
       path.join(rootDir, ".env"),
       path.join(rootDir, "nxpress.config.json"),
       path.join(rootDir, "nxpress.config.js"),
     ].filter((target) => fs.existsSync(target));
 
     const watcher = chokidar.watch(watchTargets, {
-      ignored: ["**/public/tailwind.css", "**/tailwind.css", "**/*.map"],
+      ignored: [tailwindOutput, "**/*.map"],
       ignoreInitial: true,
       interval: 100,
     });
