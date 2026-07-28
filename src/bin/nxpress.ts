@@ -32,7 +32,7 @@ program
   .description(
     "Next.js-like Express framework with file routing & template components",
   )
-  .version(getNxpressVersion(), "-v, -V, --version");
+  .version(getNxpressVersion());
 
 function loadConfigFile(rootDir: string): Record<string, any> {
   const jsonConfig = path.join(rootDir, "nxpress.config.json");
