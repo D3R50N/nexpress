@@ -10,6 +10,7 @@ import { registerRoutes } from "./router";
 import { logger } from "./logger";
 import { compileTailwindCss, TailwindOptions } from "./tailwind";
 import { handleLiveReloadRoute, LIVE_RELOAD_SCRIPT } from "./liveReload";
+import { getFilteredEnv } from "./env";
 
 export type TemplateEngine = "ejs" | "hbs" | "html" | "nunjucks" | "liquid";
 
@@ -24,6 +25,7 @@ export interface NxpressServerOptions {
   tailwind?: boolean | TailwindOptions;
   globals?: Record<string, any>;
   isDev?: boolean;
+  secureEnv?: boolean;
 }
 
 /**
@@ -130,8 +132,9 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     res.locals.tailwind = `<link rel="stylesheet" href="${tailwindCssUrl}"/>`;
     res.locals.year = now.getFullYear();
     res.locals.now = now;
-    res.locals.E = process.env;
-    res.locals.env = process.env;
+    const envObj = getFilteredEnv(options.secureEnv);
+    res.locals.E = envObj;
+    res.locals.env = envObj;
     res.locals.G = globalObj;
     res.locals.global = globalObj;
     res.locals.R = requestObj;

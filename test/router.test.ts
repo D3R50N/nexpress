@@ -3,6 +3,7 @@ import path from 'path';
 import { fileToRoutePath, findLayoutsForRoute } from '../src/router';
 import { builtinHelpers } from '../src/helpers';
 import { renderComponent, registerComponents } from '../src/components';
+import { getFilteredEnv } from '../src/env';
 
 console.log('Testing fileToRoutePath (TypeScript)...');
 
@@ -37,5 +38,15 @@ registerComponents(exampleComponentsDir);
 const compUpper = renderComponent('ProductCard', { product: { name: 'Test', price: 100 } });
 const compLower = renderComponent('productcard', { product: { name: 'Test', price: 100 } });
 assert.strictEqual(compUpper, compLower);
+
+console.log('Testing getFilteredEnv...');
+process.env.SECRET_KEY = 'secret123';
+process.env.PUBLIC_API_URL = 'https://api.example.com';
+const fullEnv = getFilteredEnv(false);
+const secureEnv = getFilteredEnv();
+assert.strictEqual(fullEnv.SECRET_KEY, 'secret123');
+assert.strictEqual(secureEnv.SECRET_KEY, undefined);
+assert.strictEqual(secureEnv.PUBLIC_API_URL, 'https://api.example.com');
+assert.strictEqual(secureEnv.NODE_ENV, process.env.NODE_ENV);
 
 console.log('✅ All TS router path and helper tests passed!');

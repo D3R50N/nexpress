@@ -7,8 +7,11 @@ import nunjucks from "nunjucks";
 import { Liquid } from "liquidjs";
 import { logger } from "./logger";
 import { getFilesPattern } from "./router";
+import { ejsToEta } from "./helpers";
 
-const etaEngine = new Eta();
+const etaEngine = new Eta({
+  useWith: true,
+});
 const liquidEngine = new Liquid();
 
 export interface ComponentOptions {
@@ -102,7 +105,8 @@ export function registerComponents(
     let compileFn: (props: Record<string, any>) => string;
 
     if (ext === ".ejs") {
-      compileFn = (props) => etaEngine.renderString(content, props);
+      const convertedContent = ejsToEta(content);
+      compileFn = (props) => etaEngine.renderString(convertedContent, props);
     } else if (ext === ".njk" || ext === ".nunjucks") {
       compileFn = (props) => nunjucks.renderString(content, props);
     } else if (ext === ".liquid") {

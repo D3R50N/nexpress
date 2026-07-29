@@ -205,3 +205,16 @@ export function registerNunjucksHelpers(env: any): void {
     } catch (_err) {}
   });
 }
+
+/**
+ * Converts EJS template syntax to Eta template syntax.
+ */
+export function ejsToEta(content: string): string {
+  if (!content) return content;
+  return content
+    .replace(/<%#([\s\S]*?)%>/g, '<%/*$1*/%>')
+    .replace(/<%-/g, '<%~')
+    .replace(/<%_/g, '<%-')
+    .replace(/_%>/g, '-%>');
+}
+

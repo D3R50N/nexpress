@@ -132,6 +132,7 @@ You can configure Nxpress via a `nxpress.config.json` or `nxpress.config.js` in 
   "componentsDir": "components",
   "publicDir": "public",
   "tailwind": true,
+  "secureEnv": true,
   "globals": {
     "siteName": "My Awesome App",
     "author": "My Team"
@@ -207,7 +208,7 @@ Nxpress automatically injects useful context into your templates:
   - `R.protocol`: Protocol (`"http"` / `"https"`)
   - `R.host`: Host header (`"localhost:3000"`)
 - `G` or `global`: Values defined in `nxpress.config.json` globals.
-- `E` or `env`: Process environment variables.
+- `E` or `env`: Process environment variables. By default (`secureEnv: true`), only variables starting with `PUBLIC_` and `NODE_ENV` are exposed to template views for security. Set `secureEnv: false` to expose all environment variables.
 - `tailwind`: Automatic Tailwind CSS `<link>` tag.
 - `year`, `now`: Date utilities.
 

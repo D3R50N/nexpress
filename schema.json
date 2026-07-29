@@ -36,6 +36,11 @@
     "globals": {
       "type": "object",
       "description": "Global variables injected into all template views (accessible via G.key)"
+    },
+    "secureEnv": {
+      "type": "boolean",
+      "default": true,
+      "description": "Restrict environment variables in template views (E / env) to NODE_ENV and PUBLIC_* prefix"
     }
   },
   "additionalProperties": false

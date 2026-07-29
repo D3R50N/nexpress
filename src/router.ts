@@ -13,6 +13,7 @@ import { injectLiveReloadScript } from "./liveReload";
 import { isDevMode } from "./env";
 import {
   builtinHelpers,
+  ejsToEta,
   registerBuiltinHelpers,
   registerLiquidFilters,
   registerNunjucksHelpers,
@@ -64,7 +65,7 @@ export function renderTemplateFile(
   const content = fs.readFileSync(filePath, "utf8");
   const ext = path.extname(filePath).toLowerCase();
   if (ext === ".ejs") {
-    return etaEngine.renderString(content, props);
+    return etaEngine.renderString(ejsToEta(content), props);
   }
 
   if (ext === ".njk" || ext === ".nunjucks") {
@@ -469,7 +470,10 @@ export function registerRoutes(
 }
 
 export function getFilesPattern(optionsEngine?: string) {
-  const engine = (optionsEngine || "ejs").toLowerCase();
+  if (!optionsEngine) {
+    return "**/*.{hbs,html,ejs,pug,mustache,njk,nunjucks,liquid,js,ts}";
+  }
+  const engine = optionsEngine.toLowerCase();
 
   let globPattern = `**/*.{${engine},js,ts}`;
   if (engine === "ejs") {
