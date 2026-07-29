@@ -133,7 +133,7 @@ export function findLayoutsForRoute(
  */
 export function fileToRoutePath(relPath: string): string {
   let routePath = relPath.replace(
-    /\.(hbs|ejs|html|pug|mustache|njk|js|ts)$/,
+    /\.(hbs|ejs|html|eta|liquid|nunjucks|njk|pug|mustache|js|ts)$/i,
     "",
   );
 
@@ -296,21 +296,21 @@ export function registerRoutes(
   const rootDir = options.rootDir || process.cwd();
   const engine = (options.engine || "ejs").toLowerCase();
 
-  // Determine valid template file extensions for the configured engine
-  let validExts: string[] = [`.${engine}`];
+  // Build targeted glob pattern matching only engine extensions & API/companion JS/TS files
+  let globPattern = `**/*.{${engine},js,ts}`;
   if (engine === "ejs") {
-    validExts = [".ejs"];
+    globPattern = "**/*.{ejs,js,ts}";
   } else if (engine === "hbs") {
-    validExts = [".hbs"];
+    globPattern = "**/*.{hbs,js,ts}";
   } else if (engine === "njk" || engine === "nunjucks") {
-    validExts = [".njk", ".nunjucks"];
+    globPattern = "**/*.{njk,nunjucks,js,ts}";
   } else if (engine === "liquid") {
-    validExts = [".liquid"];
+    globPattern = "**/*.{liquid,js,ts}";
   } else if (engine === "html") {
-    validExts = [".html", ".htm"];
+    globPattern = "**/*.{html,htm,js,ts}";
   }
 
-  const files = globSync("**/*", {
+  const files = globSync(globPattern, {
     cwd: appDir,
     nodir: true,
   });
@@ -324,7 +324,7 @@ export function registerRoutes(
     } else {
       const ext = path.extname(file).toLowerCase();
       const baseName = path.basename(file, ext);
-      if (baseName !== "layout" && validExts.includes(ext)) {
+      if (baseName !== "layout" && ext !== ".js" && ext !== ".ts") {
         pageFiles.push(file);
       }
     }
