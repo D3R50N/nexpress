@@ -11,9 +11,20 @@ import { logger } from "./logger";
 import { injectTailwindCss } from "./tailwind";
 import { injectLiveReloadScript } from "./liveReload";
 import { isDevMode } from "./env";
+import {
+  builtinHelpers,
+  registerBuiltinHelpers,
+  registerLiquidFilters,
+  registerNunjucksHelpers,
+} from "./helpers";
 
 const etaEngine = new Eta();
 const liquidEngine = new Liquid();
+
+registerLiquidFilters(liquidEngine);
+try {
+  registerNunjucksHelpers(nunjucks);
+} catch (_e) {}
 
 const jitiLoader = createJiti(__filename, {
   cache: false,

@@ -182,3 +182,26 @@ export function registerBuiltinHelpers(): void {
     });
   });
 }
+
+/**
+ * Registers all built-in helpers as filters on a LiquidJS instance.
+ */
+export function registerLiquidFilters(liquid: any): void {
+  Object.entries(builtinHelpers).forEach(([name, fn]) => {
+    liquid.registerFilter(name, (...args: any[]) => {
+      return (fn as Function)(...args);
+    });
+  });
+}
+
+/**
+ * Registers all built-in helpers as filters and globals on Nunjucks environment.
+ */
+export function registerNunjucksHelpers(env: any): void {
+  Object.entries(builtinHelpers).forEach(([name, fn]) => {
+    try {
+      env.addFilter(name, (...args: any[]) => (fn as Function)(...args));
+      env.addGlobal(name, fn);
+    } catch (_err) {}
+  });
+}
