@@ -1,15 +1,16 @@
-import path from 'path';
-import { serve } from '../../src/server';
+import path from "path";
+import { serve } from "../../src/server";
 
 const PORT = 3000;
 
 serve({
   port: PORT,
   rootDir: __dirname,
+  engine: "hbs",
   globals: {
-    siteName: 'Nexpress Store',
-    author: 'Nexpress Team',
-    version: '1.0.0',
-    currency: '€',
+    siteName: "Nexpress Store",
+    author: "Nexpress Team",
+    version: "1.0.0",
+    currency: "€",
   },
 });

@@ -1,9 +1,9 @@
 import path from 'path';
-import { serve } from '../../src/server';
+import { nxpress, serve } from '../../src/server';
 
 const PORT = 3001;
 
-serve({
+const app=nxpress({
   port: PORT,
   
   rootDir: __dirname,
@@ -15,3 +15,9 @@ serve({
     currency: '€',
   },
 });
+
+app.use((req,res,next)=>{
+  console.log(req);
+  next();
+})
+app.listen(2000);

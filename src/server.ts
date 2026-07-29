@@ -1,3 +1,4 @@
+import chokidar from "chokidar";
 import dotenv from "dotenv";
 import express, { Express } from "express";
 import fs from "fs";
@@ -8,9 +9,17 @@ import { builtinHelpers, registerBuiltinHelpers } from "./helpers";
 import { registerRoutes } from "./router";
 
 import { logger } from "./logger";
-import { compileTailwindCss, TailwindOptions } from "./tailwind";
-import { handleLiveReloadRoute, LIVE_RELOAD_SCRIPT } from "./liveReload";
-import { getFilteredEnv } from "./env";
+import {
+  compileTailwindCss,
+  getTailwindOutputInfo,
+  TailwindOptions,
+} from "./tailwind";
+import {
+  handleLiveReloadRoute,
+  notifyLiveReload,
+  LIVE_RELOAD_SCRIPT,
+} from "./liveReload";
+import { getFilteredEnv, isDevMode } from "./env";
 
 export type TemplateEngine = "ejs" | "hbs" | "html" | "nunjucks" | "liquid";
 
@@ -160,7 +169,98 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     isDev: options.isDev,
   });
 
+  const originalListen = app.listen.bind(app);
+  let watcherStarted = false;
+
+  app.listen = function (...args: any[]) {
+    if (isDevMode(options) && !watcherStarted) {
+      watcherStarted = true;
+      setupDevWatcher(options);
+    }
+    return originalListen(...args);
+  } as any;
+
   return app;
+}
+
+/**
+ * Sets up background file watching for live reload and cache clearing in development mode.
+ */
+function setupDevWatcher(options: NxpressServerOptions): void {
+  const rootDir = options.rootDir || process.cwd();
+  const appDir = options.appDir || path.join(rootDir, "app");
+  const componentsDir =
+    options.componentsDir || path.join(rootDir, "components");
+  const publicDir = options.publicDir || path.join(rootDir, "public");
+
+  const tailwindOptions =
+    typeof options.tailwind === "object" ? options.tailwind : {};
+  const tailwindInput = tailwindOptions.input
+    ? path.resolve(rootDir, tailwindOptions.input)
+    : path.join(rootDir, "app.css");
+
+  const { outputCss: tailwindOutput } = getTailwindOutputInfo(
+    rootDir,
+    publicDir,
+    tailwindOptions,
+  );
+
+  const watchTargets = [
+    appDir,
+    componentsDir,
+    publicDir,
+    tailwindInput,
+    path.join(rootDir, ".env"),
+    path.join(rootDir, "nxpress.config.json"),
+    path.join(rootDir, "nxpress.config.js"),
+    path.join(rootDir, "nxpress.config.ts"),
+  ].filter((target) => fs.existsSync(target));
+
+  const watcher = chokidar.watch(watchTargets, {
+    ignored: [tailwindOutput, "**/*.map"],
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 5,
+    },
+  });
+
+  watcher.on("all", (_event, filePath) => {
+    const filename = path.basename(filePath);
+
+    if (
+      filePath === tailwindOutput ||
+      path.resolve(filePath) === path.resolve(tailwindOutput) ||
+      filename === "tailwind.css"
+    ) {
+      return;
+    }
+
+    const relPath = path.relative(rootDir, filePath);
+
+    try {
+      const resolved = require.resolve(filePath);
+      delete require.cache[resolved];
+    } catch (e) {}
+    try {
+      delete require.cache[filePath];
+    } catch (e) {}
+    try {
+      if (fs.existsSync(filePath)) {
+        delete require.cache[fs.realpathSync(filePath)];
+      }
+    } catch (e) {}
+
+    if (filePath.startsWith(componentsDir)) {
+      registerComponents(componentsDir, options);
+    }
+
+    if (options.tailwind !== false) {
+      compileTailwindCss(rootDir, publicDir, tailwindOptions);
+    }
+
+    logger.info(`File changed \`${relPath}\``);
+    notifyLiveReload();
+  });
 }
 
 /**
@@ -170,12 +270,34 @@ export function serve(
   options: NxpressServerOptions = {},
   log: boolean = true,
 ): Server {
+  const isDev = isDevMode(options);
+  options.isDev = isDev;
+
   const port = options.port || Number(process.env.PORT) || 3000;
   const app = nxpress(options);
 
-  return app.listen(port, () => {
+  const server = app.listen(port, () => {
     if (log) {
       logger.serverRunning(port);
     }
   });
+
+  if (isDev && process.stdin.isTTY) {
+    try {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (key: string) => {
+        if (key === "\u0003" || key === "\u0004") {
+          process.exit(0);
+        }
+        if (key.toLowerCase() === "r" || key.trim().toLowerCase() === "rs") {
+          logger.warn("Manual reload triggered");
+          notifyLiveReload();
+        }
+      });
+    } catch (e) {}
+  }
+
+  return server;
 }

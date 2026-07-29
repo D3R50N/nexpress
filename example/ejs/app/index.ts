@@ -3,8 +3,8 @@ import type { Request, Response } from 'express';
 export async function props(req: Request, res: Response) {
   let joke = null;
   try {
-    const resApi = await fetch('https://v2.jokeapi.dev/joke/Any?lang=fr');
-    joke = await resApi.json();
+    // const resApi = await fetch('https://v2.jokeapi.dev/joke/Any?lang=fr');
+    // joke = await resApi.json();
   } catch (err) {
     joke = null;
   }
