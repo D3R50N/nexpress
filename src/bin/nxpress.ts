@@ -267,7 +267,7 @@ program
       } catch (e) {}
 
       if (filePath.startsWith(componentsDir)) {
-        registerComponents(componentsDir);
+        registerComponents(componentsDir, options);
       }
 
       if (options.tailwind !== false) {

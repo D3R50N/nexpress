@@ -149,7 +149,7 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     app.use(express.static(publicDir));
   }
 
-  registerComponents(componentsDir);
+  registerComponents(componentsDir, options);
   registerRoutes(app, appDir, {
     engine,
     globals: options.globals,

@@ -18,7 +18,9 @@ import {
   registerNunjucksHelpers,
 } from "./helpers";
 
-const etaEngine = new Eta();
+const etaEngine = new Eta({
+  useWith: true,
+});
 const liquidEngine = new Liquid();
 
 registerLiquidFilters(liquidEngine);
@@ -61,7 +63,6 @@ export function renderTemplateFile(
 ): string {
   const content = fs.readFileSync(filePath, "utf8");
   const ext = path.extname(filePath).toLowerCase();
-
   if (ext === ".ejs") {
     return etaEngine.renderString(content, props);
   }
@@ -249,9 +250,7 @@ export async function renderPageView(
   ];
   for (const key of systemReservedKeys) {
     if (key in pageProps) {
-      logger.warn(
-        `Reserved key "${key}" in props() was overridden by system.`,
-      );
+      logger.warn(`Reserved key "${key}" in props() was overridden by system.`);
     }
     mergedProps[key] = res.locals[key];
   }
@@ -266,7 +265,6 @@ export async function renderPageView(
 
   try {
     let renderedHtml = renderTemplateFile(templateFullPath, mergedProps);
-
     for (const layoutPath of layouts) {
       renderedHtml = renderTemplateFile(layoutPath, {
         ...mergedProps,
@@ -305,21 +303,9 @@ export function registerRoutes(
   }
 
   const rootDir = options.rootDir || process.cwd();
-  const engine = (options.engine || "ejs").toLowerCase();
 
   // Build targeted glob pattern matching only engine extensions & API/companion JS/TS files
-  let globPattern = `**/*.{${engine},js,ts}`;
-  if (engine === "ejs") {
-    globPattern = "**/*.{ejs,js,ts}";
-  } else if (engine === "hbs") {
-    globPattern = "**/*.{hbs,js,ts}";
-  } else if (engine === "njk" || engine === "nunjucks") {
-    globPattern = "**/*.{njk,nunjucks,js,ts}";
-  } else if (engine === "liquid") {
-    globPattern = "**/*.{liquid,js,ts}";
-  } else if (engine === "html") {
-    globPattern = "**/*.{html,htm,js,ts}";
-  }
+  let globPattern = getFilesPattern(options.engine);
 
   const files = globSync(globPattern, {
     cwd: appDir,
@@ -373,7 +359,12 @@ export function registerRoutes(
   const templateFiles = pageFiles.filter((f) => {
     if (f.endsWith(".js") || f.endsWith(".ts")) return false;
     const base = path.basename(f, path.extname(f));
-    return base !== "404" && base !== "500" && base !== "not-found" && base !== "error";
+    return (
+      base !== "404" &&
+      base !== "500" &&
+      base !== "not-found" &&
+      base !== "error"
+    );
   });
 
   templateFiles.forEach((templateFile) => {
@@ -475,6 +466,24 @@ export function registerRoutes(
 </html>`;
     res.status(500).send(html500);
   });
+}
+
+export function getFilesPattern(optionsEngine?: string) {
+  const engine = (optionsEngine || "ejs").toLowerCase();
+
+  let globPattern = `**/*.{${engine},js,ts}`;
+  if (engine === "ejs") {
+    globPattern = "**/*.{ejs,js,ts}";
+  } else if (engine === "hbs") {
+    globPattern = "**/*.{hbs,js,ts}";
+  } else if (engine === "njk" || engine === "nunjucks") {
+    globPattern = "**/*.{njk,nunjucks,js,ts}";
+  } else if (engine === "liquid") {
+    globPattern = "**/*.{liquid,js,ts}";
+  } else if (engine === "html") {
+    globPattern = "**/*.{html,htm,js,ts}";
+  }
+  return globPattern;
 }
 
 function escapeHtml(str: string): string {
