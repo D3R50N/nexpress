@@ -60,7 +60,13 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
 
   const rawEngine = options.engine || "ejs";
   const engine = rawEngine.toLowerCase() as TemplateEngine;
-  const allowedEngines: TemplateEngine[] = ["ejs", "hbs", "html", "nunjucks", "liquid"];
+  const allowedEngines: TemplateEngine[] = [
+    "ejs",
+    "hbs",
+    "html",
+    "nunjucks",
+    "liquid",
+  ];
 
   if (!allowedEngines.includes(engine)) {
     throw new Error(

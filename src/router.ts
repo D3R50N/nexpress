@@ -166,7 +166,7 @@ export async function renderPageView(
   res.status(statusCode);
 
   const rootDir = options.rootDir || process.cwd();
-  const engine = options.engine || "hbs";
+  const engine = options.engine || "ejs";
   let pageProps: Record<string, any> = { ...extraProps };
 
   const companionTsFile = path.resolve(
@@ -294,10 +294,25 @@ export function registerRoutes(
   }
 
   const rootDir = options.rootDir || process.cwd();
-  const engine = options.engine || "hbs";
+  const engine = (options.engine || "ejs").toLowerCase();
 
-  const files = globSync("**/*.{hbs,html,ejs,pug,mustache,njk,js,ts}", {
+  // Determine valid template file extensions for the configured engine
+  let validExts: string[] = [`.${engine}`];
+  if (engine === "ejs") {
+    validExts = [".ejs"];
+  } else if (engine === "hbs") {
+    validExts = [".hbs"];
+  } else if (engine === "njk" || engine === "nunjucks") {
+    validExts = [".njk", ".nunjucks"];
+  } else if (engine === "liquid") {
+    validExts = [".liquid"];
+  } else if (engine === "html") {
+    validExts = [".html", ".htm"];
+  }
+
+  const files = globSync("**/*", {
     cwd: appDir,
+    nodir: true,
   });
 
   const apiFiles: string[] = [];
@@ -307,8 +322,9 @@ export function registerRoutes(
     if (file.startsWith("api/") || file.startsWith("api\\")) {
       apiFiles.push(file);
     } else {
-      const baseName = path.basename(file, path.extname(file));
-      if (baseName !== "layout") {
+      const ext = path.extname(file).toLowerCase();
+      const baseName = path.basename(file, ext);
+      if (baseName !== "layout" && validExts.includes(ext)) {
         pageFiles.push(file);
       }
     }
