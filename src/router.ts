@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { globSync } from "glob";
-import { Express, Request, Response, RequestHandler } from "express";
+import { Express, Request, Response, RequestHandler, NextFunction } from "express";
 import hbs from "hbs";
 import { Eta } from "eta";
 import nunjucks from "nunjucks";
@@ -165,6 +165,195 @@ export function fileToRoutePath(relPath: string): string {
 }
 
 /**
+ * Helper to check if a route path matches an array of ignore patterns (exact or wildcard *).
+ */
+export function isRouteIgnored(
+  routePath: string,
+  ignorePatterns?: string[],
+): boolean {
+  if (!ignorePatterns || !Array.isArray(ignorePatterns) || ignorePatterns.length === 0) {
+    return false;
+  }
+
+  const cleanRoute = routePath.startsWith("/") ? routePath : "/" + routePath;
+
+  return ignorePatterns.some((pattern) => {
+    if (!pattern) return false;
+    const cleanPattern = pattern.startsWith("/") ? pattern : "/" + pattern;
+    if (cleanPattern === cleanRoute) return true;
+
+    // Convert wildcard pattern like /admin/* to regex ^\/admin\/.*$
+    const regexString =
+      "^" +
+      cleanPattern
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*") +
+      "$";
+    const regex = new RegExp(regexString);
+    return regex.test(cleanRoute);
+  });
+}
+
+/**
+ * Creates a dynamic RequestHandler wrapper for a folder-level middleware file.
+ * Clears require cache and reloads the file on each request to support instant dev updates.
+ */
+export function createFolderMiddlewareWrapper(
+  mwFile: string,
+): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      try {
+        delete require.cache[require.resolve(mwFile)];
+      } catch (e) {}
+
+      let mwModule: any;
+      try {
+        mwModule = jitiLoader(mwFile);
+      } catch (e) {
+        mwModule = require(mwFile);
+      }
+
+      const ignoreList =
+        mwModule.ignore || (mwModule.default && mwModule.default.ignore);
+      if (isRouteIgnored(req.path, ignoreList)) {
+        return next();
+      }
+
+      const rawMw =
+        mwModule.default ||
+        mwModule.middlewares ||
+        mwModule.middleware ||
+        mwModule;
+
+      if (Array.isArray(rawMw)) {
+        let idx = 0;
+        const runNext = (err?: any) => {
+          if (err) return next(err);
+          if (idx >= rawMw.length) return next();
+          const fn = rawMw[idx++];
+          if (typeof fn === "function") {
+            fn(req, res, runNext);
+          } else {
+            runNext();
+          }
+        };
+        runNext();
+      } else if (typeof rawMw === "function") {
+        rawMw(req, res, next);
+      } else {
+        next();
+      }
+    } catch (err) {
+      logger.error(`Error executing dynamic middleware at ${mwFile}:`, err);
+      next(err);
+    }
+  };
+}
+
+/**
+ * Creates a dynamic RequestHandler wrapper for route-level middlewares.
+ */
+export function createRouteMiddlewareWrapper(
+  filePath: string,
+): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      try {
+        delete require.cache[require.resolve(filePath)];
+      } catch (e) {}
+
+      let routeModule: any;
+      try {
+        routeModule = jitiLoader(filePath);
+      } catch (e) {
+        routeModule = require(filePath);
+      }
+
+      const rawMw = routeModule.middlewares || routeModule.middleware;
+      if (Array.isArray(rawMw)) {
+        let idx = 0;
+        const runNext = (err?: any) => {
+          if (err) return next(err);
+          if (idx >= rawMw.length) return next();
+          const fn = rawMw[idx++];
+          if (typeof fn === "function") {
+            fn(req, res, runNext);
+          } else {
+            runNext();
+          }
+        };
+        runNext();
+      } else if (typeof rawMw === "function") {
+        rawMw(req, res, next);
+      } else {
+        next();
+      }
+    } catch (err) {
+      logger.error(`Error executing route middleware at ${filePath}:`, err);
+      next(err);
+    }
+  };
+}
+
+/**
+ * Resolves folder-level middleware files (middleware.ts / middleware.js) from appDir down to target relative path.
+ */
+export function getFolderMiddlewares(
+  appDir: string,
+  relPath: string,
+  routePath: string,
+): RequestHandler[] {
+  const middlewares: RequestHandler[] = [];
+  const dirParts = path
+    .dirname(relPath)
+    .split(/[/\\]/)
+    .filter((p) => p !== "." && p !== "");
+
+  const searchDirs: string[] = [appDir];
+  let cur = appDir;
+  for (const part of dirParts) {
+    cur = path.join(cur, part);
+    searchDirs.push(cur);
+  }
+
+  for (const dir of searchDirs) {
+    if (!fs.existsSync(dir)) continue;
+
+    const tsFile = path.resolve(dir, "middleware.ts");
+    const jsFile = path.resolve(dir, "middleware.js");
+    let mwFile: string | null = null;
+    if (fs.existsSync(tsFile)) {
+      mwFile = tsFile;
+    } else if (fs.existsSync(jsFile)) {
+      mwFile = jsFile;
+    }
+
+    if (mwFile) {
+      middlewares.push(createFolderMiddlewareWrapper(mwFile));
+    }
+  }
+
+  return middlewares;
+}
+
+/**
+ * Resolves route-level middlewares exported by an API route module or companion page module.
+ */
+export function getRouteMiddlewares(routeModule: any): RequestHandler[] {
+  if (!routeModule) return [];
+  const rawMw = routeModule.middlewares || routeModule.middleware;
+  if (Array.isArray(rawMw)) {
+    return rawMw.filter((fn) => typeof fn === "function");
+  } else if (typeof rawMw === "function") {
+    return [rawMw];
+  }
+  return [];
+}
+
+
+
+/**
  * Renders a page view with its companion file, layout, and props.
  */
 export async function renderPageView(
@@ -317,12 +506,14 @@ export function registerRoutes(
   const pageFiles: string[] = [];
 
   files.forEach((file) => {
+    const ext = path.extname(file).toLowerCase();
+    const baseName = path.basename(file, ext);
+    if (baseName === "middleware" || baseName === "layout") return;
+
     if (file.startsWith("api/") || file.startsWith("api\\")) {
       apiFiles.push(file);
     } else {
-      const ext = path.extname(file).toLowerCase();
-      const baseName = path.basename(file, ext);
-      if (baseName !== "layout" && ext !== ".js" && ext !== ".ts") {
+      if (ext !== ".js" && ext !== ".ts") {
         pageFiles.push(file);
       }
     }
@@ -336,23 +527,63 @@ export function registerRoutes(
     const routePath = fileToRoutePath(file);
 
     delete require.cache[require.resolve(fullPath)];
-    const routeModule = require(fullPath);
+    let routeModule: any;
+    try {
+      routeModule = jitiLoader(fullPath);
+    } catch (e) {
+      routeModule = require(fullPath);
+    }
+
+    const folderMws = getFolderMiddlewares(appDir, file, routePath);
+    const routeMwWrapper = createRouteMiddlewareWrapper(fullPath);
+    const allMiddlewares = [...folderMws, routeMwWrapper];
 
     const methods: HttpMethod[] = ["get", "post", "put", "delete", "patch"];
     let registered = false;
 
     methods.forEach((method) => {
       if (typeof routeModule[method] === "function") {
-        app[method](routePath, routeModule[method]);
+        app[method](
+          routePath,
+          ...allMiddlewares,
+          (req: Request, res: Response, next: NextFunction) => {
+            try {
+              try {
+                delete require.cache[require.resolve(fullPath)];
+              } catch (e) {}
+              const freshModule = jitiLoader(fullPath);
+              if (typeof freshModule[method] === "function") {
+                return freshModule[method](req, res, next);
+              }
+            } catch (e) {}
+            return routeModule[method](req, res, next);
+          },
+        );
         registered = true;
       }
     });
 
     if (!registered) {
-      const defaultHandler = routeModule.default || routeModule;
-      if (typeof defaultHandler === "function") {
-        app.all(routePath, defaultHandler);
-      }
+      app.all(
+        routePath,
+        ...allMiddlewares,
+        (req: Request, res: Response, next: NextFunction) => {
+          try {
+            try {
+              delete require.cache[require.resolve(fullPath)];
+            } catch (e) {}
+            const freshModule = jitiLoader(fullPath);
+            const defaultHandler = freshModule.default || freshModule;
+            if (typeof defaultHandler === "function") {
+              return defaultHandler(req, res, next);
+            }
+          } catch (e) {}
+          const defaultHandler = routeModule.default || routeModule;
+          if (typeof defaultHandler === "function") {
+            return defaultHandler(req, res, next);
+          }
+        },
+      );
     }
   });
 
@@ -371,6 +602,27 @@ export function registerRoutes(
   templateFiles.forEach((templateFile) => {
     const routePath = fileToRoutePath(templateFile);
 
+    const companionTsFile = path.resolve(
+      appDir,
+      templateFile.replace(/\.[^.]+$/, ".ts"),
+    );
+    const companionJsFile = path.resolve(
+      appDir,
+      templateFile.replace(/\.[^.]+$/, ".js"),
+    );
+    let companionPath: string | null = null;
+    if (fs.existsSync(companionTsFile)) {
+      companionPath = companionTsFile;
+    } else if (fs.existsSync(companionJsFile)) {
+      companionPath = companionJsFile;
+    }
+
+    const folderMws = getFolderMiddlewares(appDir, templateFile, routePath);
+    const allMiddlewares = [...folderMws];
+    if (companionPath) {
+      allMiddlewares.push(createRouteMiddlewareWrapper(companionPath));
+    }
+
     const handler: RequestHandler = async (req: Request, res: Response) => {
       try {
         await renderPageView(req, res, templateFile, 200, {}, options, appDir);
@@ -382,7 +634,7 @@ export function registerRoutes(
       }
     };
 
-    app.get(routePath, handler);
+    app.get(routePath, ...allMiddlewares, handler);
   });
 
   return pageFiles;

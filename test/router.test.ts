@@ -15,8 +15,8 @@ assert.strictEqual(fileToRoutePath('blog/[...slug].hbs'), '/blog/*');
 assert.strictEqual(fileToRoutePath('api/health.ts'), '/api/health');
 
 console.log('Testing findLayoutsForRoute...');
-const exampleHbsDir = path.resolve('./example/handlebars/app');
-const layouts = findLayoutsForRoute(path.resolve('./example/handlebars'), exampleHbsDir, 'index.hbs', 'hbs');
+const exampleEjsDir = path.resolve('./example/ejs/app');
+const layouts = findLayoutsForRoute(path.resolve('./example/ejs'), exampleEjsDir, 'index.ejs', 'ejs');
 assert.strictEqual(layouts.length > 0, true);
 
 console.log('Testing builtinHelpers...');
@@ -33,10 +33,10 @@ assert.strictEqual(builtinHelpers.eq(5, 5), true);
 assert.strictEqual(builtinHelpers.ne(5, 10), true);
 
 console.log('Testing case-insensitive renderComponent...');
-const exampleComponentsDir = path.resolve('./example/handlebars/components');
+const exampleComponentsDir = path.resolve('./example/ejs/components');
 registerComponents(exampleComponentsDir);
-const compUpper = renderComponent('ProductCard', { product: { name: 'Test', price: 100 } });
-const compLower = renderComponent('productcard', { product: { name: 'Test', price: 100 } });
+const compUpper = renderComponent('ProductCard', { G: { currency: '€' }, product: { name: 'Test', price: 100, category: 'Cat', description: 'Desc', id: 1 } });
+const compLower = renderComponent('productcard', { G: { currency: '€' }, product: { name: 'Test', price: 100, category: 'Cat', description: 'Desc', id: 1 } });
 assert.strictEqual(compUpper, compLower);
 
 console.log('Testing getFilteredEnv...');
@@ -48,5 +48,11 @@ assert.strictEqual(fullEnv.SECRET_KEY, 'secret123');
 assert.strictEqual(secureEnv.SECRET_KEY, undefined);
 assert.strictEqual(secureEnv.PUBLIC_API_URL, 'https://api.example.com');
 assert.strictEqual(secureEnv.NODE_ENV, process.env.NODE_ENV);
+
+console.log('Testing isRouteIgnored...');
+import { isRouteIgnored } from '../src/router';
+assert.strictEqual(isRouteIgnored('/api/health', ['/api/health']), true);
+assert.strictEqual(isRouteIgnored('/admin/users', ['/admin/*']), true);
+assert.strictEqual(isRouteIgnored('/public/about', ['/admin/*']), false);
 
 console.log('✅ All TS router path and helper tests passed!');

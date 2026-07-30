@@ -1,6 +1,13 @@
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
-export async function props(req: Request, res: Response) {
+export const middlewares = [
+  (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Custom-Route-Middleware', 'index-page');
+    next();
+  },
+];
+
+export default async function props(req: Request, res: Response) {
   let joke = null;
   try {
     // const resApi = await fetch('https://v2.jokeapi.dev/joke/Any?lang=fr');
@@ -22,3 +29,4 @@ export async function props(req: Request, res: Response) {
     products,
   };
 }
+
