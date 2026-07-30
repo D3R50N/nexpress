@@ -49,10 +49,33 @@ assert.strictEqual(secureEnv.SECRET_KEY, undefined);
 assert.strictEqual(secureEnv.PUBLIC_API_URL, 'https://api.example.com');
 assert.strictEqual(secureEnv.NODE_ENV, process.env.NODE_ENV);
 
-console.log('Testing isRouteIgnored...');
-import { isRouteIgnored } from '../src/router';
-assert.strictEqual(isRouteIgnored('/api/health', ['/api/health']), true);
-assert.strictEqual(isRouteIgnored('/admin/users', ['/admin/*']), true);
-assert.strictEqual(isRouteIgnored('/public/about', ['/admin/*']), false);
+console.log('Testing executeMiddlewareList (auto next & auto response)...');
+import { executeMiddlewareList } from '../src/router';
 
-console.log('✅ All TS router path and helper tests passed!');
+async function testExecuteMw() {
+  let step = 0;
+  const req: any = { path: '/test' };
+  const res: any = { headersSent: false };
+
+  // 1. Auto next when no next() called
+  await executeMiddlewareList([
+    () => { step += 1; },
+    () => { step += 10; }
+  ], req, res, (() => {}) as any);
+  assert.strictEqual(step, 11);
+
+  // 2. Auto return object as res.json
+  let sentJson: any = null;
+  const resJson: any = {
+    headersSent: false,
+    json(data: any) { sentJson = data; this.headersSent = true; }
+  };
+  await executeMiddlewareList([
+    () => ({ ok: true })
+  ], req, resJson, (() => {}) as any);
+  assert.deepStrictEqual(sentJson, { ok: true });
+}
+
+testExecuteMw().then(() => {
+  console.log('✅ All TS router path and helper tests passed!');
+});

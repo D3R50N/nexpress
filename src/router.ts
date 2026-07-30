@@ -195,13 +195,84 @@ export function isRouteIgnored(
 }
 
 /**
+ * Executes a single middleware function or list of middlewares:
+ * - Auto-invokes next() if not explicitly called and no response was returned/sent.
+ * - Auto-responds with res.json/res.send if a string, object, array, number, or boolean is returned.
+ */
+export async function executeMiddlewareList(
+  mw: any,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  if (!mw) return next();
+
+  const mwList = Array.isArray(mw) ? mw : [mw];
+  let index = 0;
+
+  const runStep = async (err?: any): Promise<void> => {
+    if (err) return next(err);
+    if (index >= mwList.length || res.headersSent || (res as any).writableEnded) {
+      return next();
+    }
+
+    const fn = mwList[index++];
+    if (typeof fn !== "function") {
+      return runStep();
+    }
+
+    let calledNext = false;
+    const stepNext = (stepErr?: any) => {
+      if (calledNext) return;
+      calledNext = true;
+      if (stepErr) {
+        return next(stepErr);
+      }
+      runStep();
+    };
+
+    try {
+      const result = fn.length >= 3 ? fn(req, res, stepNext) : fn(req, res);
+      const resolved = result instanceof Promise ? await result : result;
+
+      if (calledNext || res.headersSent || (res as any).writableEnded) {
+        return;
+      }
+
+      if (resolved !== undefined && resolved !== null) {
+        if (typeof resolved === "string" || Buffer.isBuffer(resolved)) {
+          res.send(resolved);
+        } else if (
+          typeof resolved === "object" ||
+          typeof resolved === "number" ||
+          typeof resolved === "boolean"
+        ) {
+          res.json(resolved);
+        }
+        return;
+      }
+
+      if (!calledNext) {
+        stepNext();
+      }
+    } catch (e) {
+      if (!calledNext) {
+        stepNext(e);
+      }
+    }
+  };
+
+  await runStep();
+}
+
+/**
  * Creates a dynamic RequestHandler wrapper for a folder-level middleware file.
  * Clears require cache and reloads the file on each request to support instant dev updates.
  */
 export function createFolderMiddlewareWrapper(
   mwFile: string,
 ): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       try {
         delete require.cache[require.resolve(mwFile)];
@@ -226,24 +297,7 @@ export function createFolderMiddlewareWrapper(
         mwModule.middleware ||
         mwModule;
 
-      if (Array.isArray(rawMw)) {
-        let idx = 0;
-        const runNext = (err?: any) => {
-          if (err) return next(err);
-          if (idx >= rawMw.length) return next();
-          const fn = rawMw[idx++];
-          if (typeof fn === "function") {
-            fn(req, res, runNext);
-          } else {
-            runNext();
-          }
-        };
-        runNext();
-      } else if (typeof rawMw === "function") {
-        rawMw(req, res, next);
-      } else {
-        next();
-      }
+      await executeMiddlewareList(rawMw, req, res, next);
     } catch (err) {
       logger.error(`Error executing dynamic middleware at ${mwFile}:`, err);
       next(err);
@@ -257,7 +311,7 @@ export function createFolderMiddlewareWrapper(
 export function createRouteMiddlewareWrapper(
   filePath: string,
 ): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
       try {
         delete require.cache[require.resolve(filePath)];
@@ -271,24 +325,7 @@ export function createRouteMiddlewareWrapper(
       }
 
       const rawMw = routeModule.middlewares || routeModule.middleware;
-      if (Array.isArray(rawMw)) {
-        let idx = 0;
-        const runNext = (err?: any) => {
-          if (err) return next(err);
-          if (idx >= rawMw.length) return next();
-          const fn = rawMw[idx++];
-          if (typeof fn === "function") {
-            fn(req, res, runNext);
-          } else {
-            runNext();
-          }
-        };
-        runNext();
-      } else if (typeof rawMw === "function") {
-        rawMw(req, res, next);
-      } else {
-        next();
-      }
+      await executeMiddlewareList(rawMw, req, res, next);
     } catch (err) {
       logger.error(`Error executing route middleware at ${filePath}:`, err);
       next(err);
@@ -546,17 +583,32 @@ export function registerRoutes(
         app[method](
           routePath,
           ...allMiddlewares,
-          (req: Request, res: Response, next: NextFunction) => {
+          async (req: Request, res: Response, next: NextFunction) => {
             try {
               try {
                 delete require.cache[require.resolve(fullPath)];
               } catch (e) {}
               const freshModule = jitiLoader(fullPath);
-              if (typeof freshModule[method] === "function") {
-                return freshModule[method](req, res, next);
+              const handler =
+                typeof freshModule[method] === "function"
+                  ? freshModule[method]
+                  : routeModule[method];
+              const result = await handler(req, res, next);
+              if (
+                result !== undefined &&
+                result !== null &&
+                !res.headersSent &&
+                !(res as any).writableEnded
+              ) {
+                if (typeof result === "string" || Buffer.isBuffer(result)) {
+                  res.send(result);
+                } else {
+                  res.json(result);
+                }
               }
-            } catch (e) {}
-            return routeModule[method](req, res, next);
+            } catch (e) {
+              next(e);
+            }
           },
         );
         registered = true;
@@ -567,20 +619,34 @@ export function registerRoutes(
       app.all(
         routePath,
         ...allMiddlewares,
-        (req: Request, res: Response, next: NextFunction) => {
+        async (req: Request, res: Response, next: NextFunction) => {
           try {
             try {
               delete require.cache[require.resolve(fullPath)];
             } catch (e) {}
             const freshModule = jitiLoader(fullPath);
             const defaultHandler = freshModule.default || freshModule;
-            if (typeof defaultHandler === "function") {
-              return defaultHandler(req, res, next);
+            const handler =
+              typeof defaultHandler === "function"
+                ? defaultHandler
+                : routeModule.default || routeModule;
+            if (typeof handler === "function") {
+              const result = await handler(req, res, next);
+              if (
+                result !== undefined &&
+                result !== null &&
+                !res.headersSent &&
+                !(res as any).writableEnded
+              ) {
+                if (typeof result === "string" || Buffer.isBuffer(result)) {
+                  res.send(result);
+                } else {
+                  res.json(result);
+                }
+              }
             }
-          } catch (e) {}
-          const defaultHandler = routeModule.default || routeModule;
-          if (typeof defaultHandler === "function") {
-            return defaultHandler(req, res, next);
+          } catch (e) {
+            next(e);
           }
         },
       );

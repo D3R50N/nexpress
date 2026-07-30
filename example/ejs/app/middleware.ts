@@ -5,5 +5,5 @@ export const ignore = ['/api/health'];
 
 export default function globalMiddleware(req: Request, res: Response, next: NextFunction) {
   res.setHeader('X-Nxpress-Global-Mw', 'enabled');
-  next();
+  console.log('globalMiddleware');
 }
