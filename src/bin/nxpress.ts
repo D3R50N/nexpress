@@ -90,7 +90,7 @@ function resolveServerOptions(
     : process.cwd();
   const fileConfig = loadConfigFile(rootDir);
 
-  const engine = cmdOptions.engine || fileConfig.engine || "hbs";
+  const engine = cmdOptions.engine || fileConfig.engine || "ejs";
   const port = cmdOptions.port
     ? parseInt(cmdOptions.port, 10)
     : fileConfig.port || 3000;

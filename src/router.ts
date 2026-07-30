@@ -297,10 +297,10 @@ export function registerRoutes(
   app: Express,
   appDir: string,
   options: RouterOptions = {},
-): void {
+): string[] {
   if (!fs.existsSync(appDir)) {
     logger.warn(`Directory "${appDir}" does not exist.`);
-    return;
+    return [];
   }
 
   const rootDir = options.rootDir || process.cwd();
@@ -385,6 +385,18 @@ export function registerRoutes(
     app.get(routePath, handler);
   });
 
+  return pageFiles;
+}
+
+/**
+ * Registers catch-all 404 and global 500 error handlers at the end of the Express stack.
+ */
+export function registerErrorHandlers(
+  app: Express,
+  pageFiles: string[],
+  options: RouterOptions = {},
+  appDir: string = "",
+): void {
   // 3. Catch-all 404 Handler
   app.use(async (req: Request, res: Response) => {
     const custom404 = pageFiles.find((f) => {

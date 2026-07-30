@@ -19,10 +19,8 @@
     "build": "tsc",
     "prepublishOnly": "pnpm build",
     "dev": "tsc --watch",
-    "example:hbs": "tsx example/handlebars/server.ts",
-    "example:hbs:dev": "nodemon --delay 1 --watch example/handlebars --ext ts,hbs,html,js --exec tsx example/handlebars/server.ts",
-    "example:ejs": "tsx example/ejs/server.ts",
-    "example:ejs:dev": "nodemon --delay 1 --watch example/ejs --ext ts,ejs,html,js --exec tsx example/ejs/server.ts",
+    "example": "tsx example/ejs/server.ts",
+    "example:dev": "nodemon --delay 1 --watch example/ejs --ext ts,ejs,html,js --exec tsx example/ejs/server.ts",
     "test": "tsx test/router.test.ts && tsx test/integration.test.ts"
   },
   "keywords": [

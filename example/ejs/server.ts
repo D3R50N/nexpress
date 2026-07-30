@@ -15,9 +15,12 @@ const app=nxpress({
     currency: '€',
   },
 });
+app.get('/',(req,res,next)=>{
+next()
+})
 
 app.use((req,res,next)=>{
-  console.log(req);
+  console.log('req');
   next();
 })
 app.listen(2000);

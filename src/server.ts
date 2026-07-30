@@ -6,7 +6,7 @@ import { Server } from "http";
 import path from "path";
 import { registerComponents, renderComponent } from "./components";
 import { builtinHelpers, registerBuiltinHelpers } from "./helpers";
-import { registerRoutes } from "./router";
+import { registerRoutes, registerErrorHandlers } from "./router";
 
 import { logger } from "./logger";
 import {
@@ -162,20 +162,36 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
   }
 
   registerComponents(componentsDir, options);
-  registerRoutes(app, appDir, {
-    engine,
-    globals: options.globals,
-    rootDir,
-    isDev: options.isDev,
-  });
 
   const originalListen = app.listen.bind(app);
-  let watcherStarted = false;
+  let isListenSetup = false;
 
   app.listen = function (...args: any[]) {
-    if (isDevMode(options) && !watcherStarted) {
-      watcherStarted = true;
-      setupDevWatcher(options);
+    if (!isListenSetup) {
+      isListenSetup = true;
+
+      const pageFiles = registerRoutes(app, appDir, {
+        engine,
+        globals: options.globals,
+        rootDir,
+        isDev: options.isDev,
+      });
+
+      registerErrorHandlers(
+        app,
+        pageFiles,
+        {
+          engine,
+          globals: options.globals,
+          rootDir,
+          isDev: options.isDev,
+        },
+        appDir,
+      );
+
+      if (isDevMode(options)) {
+        setupDevWatcher(options);
+      }
     }
     return originalListen(...args);
   } as any;
