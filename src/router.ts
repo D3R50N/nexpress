@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { globSync } from "glob";
-import { Express, Request, Response, RequestHandler, NextFunction } from "express";
+import { Express, Router, Request, Response, RequestHandler, NextFunction } from "express";
 import hbs from "hbs";
 import { Eta } from "eta";
 import nunjucks from "nunjucks";
@@ -154,7 +154,7 @@ export function fileToRoutePath(relPath: string): string {
     routePath = routePath.replace(/\/index$/, "").replace(/^index$/, "");
   }
 
-  routePath = routePath.replace(/\[\.\.\.([^\]]+)\]/g, "*");
+  routePath = routePath.replace(/\[\.\.\.([^\]]+)\]/g, "*$1");
   routePath = routePath.replace(/\[([^\]]+)\]/g, ":$1");
 
   if (!routePath.startsWith("/")) {
@@ -581,7 +581,7 @@ export async function renderPageView(
  * Registers all file-based routes from the app directory onto an Express app.
  */
 export function registerRoutes(
-  app: Express,
+  app: Express | Router | any,
   appDir: string,
   options: RouterOptions = {},
 ): string[] {
@@ -771,7 +771,7 @@ export function registerRoutes(
  * Registers catch-all 404 and global 500 error handlers at the end of the Express stack.
  */
 export function registerErrorHandlers(
-  app: Express,
+  app: Express | Router | any,
   pageFiles: string[],
   options: RouterOptions = {},
   appDir: string = "",

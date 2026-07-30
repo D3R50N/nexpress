@@ -11,7 +11,7 @@ assert.strictEqual(fileToRoutePath('index.hbs'), '/');
 assert.strictEqual(fileToRoutePath('about.hbs'), '/about');
 assert.strictEqual(fileToRoutePath('users/index.hbs'), '/users');
 assert.strictEqual(fileToRoutePath('users/[id].hbs'), '/users/:id');
-assert.strictEqual(fileToRoutePath('blog/[...slug].hbs'), '/blog/*');
+assert.strictEqual(fileToRoutePath('blog/[...slug].hbs'), '/blog/*slug');
 assert.strictEqual(fileToRoutePath('api/health.ts'), '/api/health');
 
 console.log('Testing findLayoutsForRoute...');

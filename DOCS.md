@@ -1,48 +1,54 @@
-# Document Technique de Reference - @nxpress/core
+# Technical Reference Documentation - @nxpress/core
 
-Ce document detaille l'ensemble des fonctionnalites et conventions du package `@nxpress/core`. Il est destine a servir de reference exhaustive pour la generation de la documentation finale.
-
----
-
-## 1. Vue d'ensemble et CLI
-
-`@nxpress/core` est un framework pour Node.js base sur Express.js qui fournit un routage base sur les fichiers, la gestion des composants et layouts d'affichage, ainsi qu'un systeme de middlewares en cascade.
-
-### Commandes CLI
-Le CLI s'exécute via les binaires `nxpress` ou `nxp` :
-- `nxpress dev` : Démarre le serveur en mode développement avec rechargement à chaud (Hot Reload) sans mise en cache des middlewares ou handlers.
-- `nxpress start` : Démarre le serveur en mode production.
+This document details all features and conventions of the `@nxpress/core` package. It serves as an exhaustive reference for generating final documentation.
 
 ---
 
-## 2. Routage base sur les fichiers (`app/`)
+## 1. Overview and CLI
 
-L'arborescence du dossier `app/` definit les routes de l'application.
+`@nxpress/core` is an Express.js-based framework for Node.js providing file-based routing, template components, cascading middlewares, and automatic response handling.
 
-### Types de fichiers
-- Fichiers de vue : `.ejs`, `.njk`, `.nunjucks`, `.hbs`, `.liquid`, `.html`
-- Fichiers compagnons de vues : `.ts` ou `.js` portant le meme nom que la vue (ex: `index.ts` pour `index.ejs`)
-- Fichiers de routes API : Tout fichier `.ts` ou `.js` situe dans `app/api/`
-- Fichiers de middlewares de dossier : `middleware.ts` ou `middleware.js`
+### CLI Commands
 
-### Syntaxe des routes dynamiques
+The CLI is executed via `nxpress` or `nxp` binaries:
+
+- `nxpress dev`: Starts the development server with Hot Reload and dynamic no-cache evaluation for middlewares and route handlers.
+- `nxpress start`: Starts the production server.
+
+---
+
+## 2. File-Based Routing Architecture (`app/`)
+
+The directory structure inside `app/` defines the application routes.
+
+### Supported File Types
+
+- View templates: `.ejs`, `.njk`, `.nunjucks`, `.hbs`, `.liquid`, `.html`
+- Page companion files: `.ts` or `.js` files sharing the same base name as the view (e.g. `index.ts` for `index.ejs`)
+- API route files: Any `.ts` or `.js` file located under `app/api/`
+- Folder middleware files: `middleware.ts` or `middleware.js`
+
+### Dynamic Route Syntax
+
 - `app/products/[id].ejs` -> Route `/products/:id`
 - `app/blog/[...slug].ejs` -> Route `/blog/*`
 - `app/index.ejs` -> Route `/`
 
-### Fichiers reserves
-- `layout.ejs` (ou extension du moteur) : Layout imbrique
-- `middleware.ts` / `middleware.js` : Middleware de dossier (non route)
-- `404.ejs`, `500.ejs`, `not-found.ejs`, `error.ejs` : Pages d'erreurs personnalisees
+### Reserved Filenames
+
+- `layout.ejs` (or view engine extension): Nested layout template
+- `middleware.ts` / `middleware.js`: Directory-level middleware (never routed)
+- `404.ejs`, `500.ejs`, `not-found.ejs`, `error.ejs`: Custom error pages
 
 ---
 
-## 3. Fichiers compagnons de vue (`app/**/*.ts`)
+## 3. Page Companion Files (`app/**/*.ts`)
 
-Chaque page de vue peut etre accompagnee d'un fichier TypeScript/JavaScript pour charger des donnees avant le rendu.
+Every view template page can be paired with a TypeScript/JavaScript companion file to fetch data before rendering.
 
-### Export des props
-La méthode recommandee pour retourner des donnees a la vue est l'export par defaut.
+### Props Export
+
+The recommended way to return data to a view is via default export.
 
 ```ts
 import type { Request, Response } from '@nxpress/core';
@@ -53,25 +59,27 @@ export default async function props(req: Request, res: Response) {
   ];
 
   return {
-    title: 'Boutique',
+    title: 'Store',
     products
   };
 }
 ```
 
-Retrocompatibilite : La fonction nommee `export async function props(req, res)` est egalement supportee.
+Backward Compatibility: Named export `export async function props(req, res)` is also supported.
 
-### Cles reservees du systeme
-Les cles suivantes sont reservees et injectees automatiquement dans les vues : `G`, `global`, `R`, `req`, `E`, `env`, `$`, `tailwind`.
+### Reserved System Keys
+
+The following keys are reserved and automatically injected into view templates: `G`, `global`, `R`, `req`, `E`, `env`, `$`, `tailwind`.
 
 ---
 
-## 4. Routes API (`app/api/**/*.ts`)
+## 4. API Routes (`app/api/**/*.ts`)
 
-Tout fichier situe sous `app/api/` est traite comme une route API.
+Any file under `app/api/` is registered as an API route handler.
 
-### Handlers par methode HTTP
-Chaque methode HTTP est definie par une fonction nommee exportee (`get`, `post`, `put`, `delete`, `patch`).
+### HTTP Method Handlers
+
+Each HTTP method is defined by an exported named function (`get`, `post`, `put`, `delete`, `patch`).
 
 ```ts
 import type { Request, Response } from '@nxpress/core';
@@ -86,39 +94,45 @@ export function get(req: Request, res: Response) {
 export function post(req: Request, res: Response) {
   return {
     success: true,
-    message: 'Donnees enregistrees'
+    message: 'Data saved successfully'
   };
 }
 ```
 
-### Handler par defaut
-Si aucune methode nommee ne correspond, `export default function(req, res)` intercepte toutes les requetes HTTP sur la route.
+### Default Fallback Handler
 
-### Reponse automatique (Auto-Return)
-Si une fonction de route API retourne une valeur :
-- Un objet ou tableau est automatiquement envoye via `res.json(valeur)`.
-- Une chaine ou un Buffer est automatiquement envoye via `res.send(valeur)`.
-- Si `res.status(...)` a ete appele, le code de statut HTTP configure est conserve.
-- Si le handler n'appelle pas `res.send`/`res.json` et ne retourne rien, `next()` est appele automatiquement.
+If no matching named HTTP method function is exported, `export default function(req, res)` catches all HTTP requests for that route.
+
+### Automatic Response (Auto-Return)
+
+If an API handler function returns a value:
+
+- An Object or Array is automatically sent via `res.json(...)`.
+- A String or Buffer is automatically sent via `res.send(...)`.
+- If `res.status(...)` was called prior to returning, the configured status code is preserved.
+- If the handler does not call `res.send`/`res.json` and returns nothing, `next()` is automatically called.
 
 ---
 
-## 5. Middlewares de dossier (`middleware.ts` / `middleware.js`)
+## 5. Folder-Level Middlewares (`middleware.ts` / `middleware.js`)
 
-Le nom `middleware.ts` (ou `.js`) est reserve. Il n'est jamais traite comme une vue ou un fichier compagnon.
+The filename `middleware.ts` (or `.js`) is reserved and is never routed as a page or matched as a view companion.
 
-### Cascade par dossier
-Un fichier `middleware.ts` s'applique au dossier dans lequel il se trouve ainsi qu'a tous ses sous-dossiers et routes.
-- `app/middleware.ts` -> S'applique a toute l'application (global).
-- `app/admin/middleware.ts` -> S'applique a `/admin/*`.
+### Directory Cascading
 
-### Collecte des exports
-Dans un fichier `middleware.ts`, toutes les fonctions exportees (fonctions nommees, `export default`, ou tableaux de fonctions) sont automatiquement collectees et executees dans l'ordre.
+A `middleware.ts` file applies to the directory it resides in and all its subdirectories and child routes.
+
+- `app/middleware.ts` -> Applies to all application routes (global).
+- `app/admin/middleware.ts` -> Applies strictly to `/admin/*`.
+
+### Auto-Collection of Exports
+
+Inside `middleware.ts`, all exported functions (named exports, default export, or exported arrays of functions) are automatically collected and executed in declaration order.
 
 ```ts
 import type { Request, Response } from '@nxpress/core';
 
-// Exclusion de routes
+// Route exclusions
 export const ignore = ['/api/health', '/public/*'];
 
 export function logger(req: Request, res: Response) {
@@ -130,17 +144,19 @@ export function setSecurityHeader(req: Request, res: Response) {
 }
 ```
 
-### Exclusion de routes (`ignore`)
-L'export `ignore` accepte un tableau de chemins ou de motifs avec wildcards (`*`). Les routes correspondantes sautent l'execution du middleware du dossier.
+### Route Exclusions (`ignore`)
+
+The `ignore` export accepts an array of route paths or wildcard patterns (`*`). Matching routes skip execution of the directory middleware.
 
 ---
 
-## 6. Middlewares de route (fichiers compagnons et API)
+## 6. Route-Level Middlewares (Companion & API Files)
 
-Pour cibler une route specifique, deux exports stricts sont disponibles dans les fichiers compagnons (`app/**/*.ts`) et API (`app/api/**/*.ts`).
+To attach middlewares to a specific route, two strict exports are available in companion (`app/**/*.ts`) and API (`app/api/**/*.ts`) files.
 
-### 1. Export `middleware` (Singulier)
-Doit etre une fonction unique. Si `middleware` est un tableau, Nxpress lève une erreur.
+### 1. `middleware` Export (Singular)
+
+Must be a single function. If `middleware` is an Array, Nxpress throws an error.
 
 ```ts
 import type { Handler } from '@nxpress/core';
@@ -150,8 +166,9 @@ export const middleware: Handler = (req, res) => {
 };
 ```
 
-### 2. Export `middlewares` (Pluriel)
-Doit etre un tableau de fonctions. Si `middlewares` est une fonction unique, Nxpress lève une erreur.
+### 2. `middlewares` Export (Plural)
+
+Must be an Array of functions. If `middlewares` is a single function, Nxpress throws an error.
 
 ```ts
 import type { Handler } from '@nxpress/core';
@@ -166,30 +183,35 @@ export const middlewares: Handler[] = [
 ];
 ```
 
-### Fusion des middlewares de route
-Si `middleware` ET `middlewares` sont exportes dans le meme fichier, ils sont fusionnes et executes dans l'ordre : d'abord `middleware`, puis les elements de `middlewares`.
+### Route Middleware Merging
+
+If both `middleware` AND `middlewares` are exported in the same file, they are merged and executed in order: `middleware` first, followed by elements in `middlewares`.
 
 ---
 
-## 7. Modele d'execution des middlewares
+## 7. Middleware Execution Model
 
-### Appel `next()` optionnel
-Les middlewares n'ont pas l'obligation d'appeler `next()`. Si une fonction termine son execution sans retourner de reponse et sans appeler `next()`, Nxpress passe automatiquement au middleware ou handler suivant.
+### Optional `next()` Calling
 
-### Compatibilite avec les packages Express
-Les middlewares Express traditionnels qui attendent 3 parametres `(req, res, next)` et appellent `next()` manuellement (comme `cors()`, `helmet()`, etc.) restent 100% compatibles sans double execution.
+Middlewares are not required to call `next()`. If a function completes execution without calling `next()` and without sending a response, Nxpress automatically advances to the next step.
 
-### Rechargement a chaud (Hot Reload)
-En mode developpement (`nxpress dev`), les middlewares et handlers sont enveloppes dynamiquement. Toute modification apportee a un fichier `middleware.ts` ou a un fichier de route s'applique immediatement a la requete HTTP suivante sans mise en cache obsolete.
+### Express Package Compatibility
 
-### Formatage des erreurs
-Toutes les erreurs de configuration de middlewares affichent des chemins de fichiers relatifs a la racine du projet (ex: `app/index.ts`).
+Traditional Express middlewares expecting 3 parameters `(req, res, next)` and calling `next()` manually (e.g. `cors()`, `helmet()`) remain 100% compatible without double execution.
+
+### Hot Reloading
+
+In development mode (`nxpress dev`), middlewares and route handlers are wrapped dynamically. Changes to `middleware.ts` or route files take effect on the very next HTTP request without stale caching.
+
+### Error Formatting
+
+All middleware and route configuration errors display file paths relative to the project root (e.g. `app/index.ts`).
 
 ---
 
-## 8. Exports et Typages du Package
+## 8. Package Exports and Types
 
-Le module `@nxpress/core` re-exporte les utilitaires et types principaux :
+The `@nxpress/core` module re-exports core utilities and types:
 
 ```ts
 import {
@@ -206,5 +228,5 @@ import {
 } from '@nxpress/core';
 ```
 
-- `Handler` / `RequestHandler` : Type standard pour definir les handlers et middlewares Express.
-- `Request`, `Response`, `Express`, `NextFunction` : Types Express re-exportes pour eviter les dependances directes.
+- `Handler` / `RequestHandler`: Standard Express handler and middleware type re-exported from Express.
+- `Request`, `Response`, `Express`, `NextFunction`: Re-exported Express types.

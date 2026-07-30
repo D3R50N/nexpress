@@ -7,6 +7,7 @@ import path from "path";
 import { registerComponents, renderComponent } from "./components";
 import { builtinHelpers, registerBuiltinHelpers } from "./helpers";
 import { registerRoutes, registerErrorHandlers } from "./router";
+import { loadConfigFile } from "./config";
 
 import { logger } from "./logger";
 import {
@@ -161,24 +162,20 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
     app.use(express.static(publicDir));
   }
 
-  registerComponents(componentsDir, options);
+  let activeRouter = express.Router();
 
-  const originalListen = app.listen.bind(app);
-  let isListenSetup = false;
-
-  app.listen = function (...args: any[]) {
-    if (!isListenSetup) {
-      isListenSetup = true;
-
-      const pageFiles = registerRoutes(app, appDir, {
+  const reloadRoutes = () => {
+    try {
+      registerComponents(componentsDir, options);
+      const newRouter = express.Router();
+      const pageFiles = registerRoutes(newRouter, appDir, {
         engine,
         globals: options.globals,
         rootDir,
         isDev: options.isDev,
       });
-
       registerErrorHandlers(
-        app,
+        newRouter,
         pageFiles,
         {
           engine,
@@ -188,9 +185,28 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
         },
         appDir,
       );
+      activeRouter = newRouter;
+      return pageFiles;
+    } catch (err) {
+      logger.error("Error reloading routes:", err);
+    }
+  };
+
+  const originalListen = app.listen.bind(app);
+  let isListenSetup = false;
+
+  app.listen = function (...args: any[]) {
+    if (!isListenSetup) {
+      isListenSetup = true;
+
+      reloadRoutes();
+
+      app.use((req, res, next) => {
+        activeRouter(req, res, next);
+      });
 
       if (isDevMode(options)) {
-        setupDevWatcher(options);
+        setupDevWatcher(options, reloadRoutes);
       }
     }
     return originalListen(...args);
@@ -202,7 +218,10 @@ export function nxpress(options: NxpressServerOptions = {}): Express {
 /**
  * Sets up background file watching for live reload and cache clearing in development mode.
  */
-function setupDevWatcher(options: NxpressServerOptions): void {
+function setupDevWatcher(
+  options: NxpressServerOptions,
+  reloadRoutes: () => any,
+): void {
   const rootDir = options.rootDir || process.cwd();
   const appDir = options.appDir || path.join(rootDir, "app");
   const componentsDir =
@@ -240,7 +259,7 @@ function setupDevWatcher(options: NxpressServerOptions): void {
     },
   });
 
-  watcher.on("all", (_event, filePath) => {
+  watcher.on("all", (event, filePath) => {
     const filename = path.basename(filePath);
 
     if (
@@ -266,15 +285,35 @@ function setupDevWatcher(options: NxpressServerOptions): void {
       }
     } catch (e) {}
 
+    if (filename.startsWith("nxpress.config") || filename === ".env") {
+      const fileConfig = loadConfigFile(rootDir);
+      options.globals = fileConfig.globals || {};
+      logger.info(`Configuration updated from \`${relPath}\``);
+      reloadRoutes();
+      notifyLiveReload();
+      return;
+    }
+
     if (filePath.startsWith(componentsDir)) {
       registerComponents(componentsDir, options);
+    }
+
+    if (
+      event === "add" ||
+      event === "unlink" ||
+      event === "addDir" ||
+      event === "unlinkDir"
+    ) {
+      logger.info(`Structure changed (${event}) \`${relPath}\``);
+      reloadRoutes();
+    } else {
+      logger.info(`File changed \`${relPath}\``);
     }
 
     if (options.tailwind !== false) {
       compileTailwindCss(rootDir, publicDir, tailwindOptions);
     }
 
-    logger.info(`File changed \`${relPath}\``);
     notifyLiveReload();
   });
 }
@@ -292,7 +331,10 @@ export function serve(
   const port = options.port || Number(process.env.PORT) || 3000;
   const app = nxpress(options);
 
-  const server = app.listen(port, () => {
+  const server = app.listen(port, (err) => {
+    if (err) {
+      throw err;
+    }
     if (log) {
       logger.serverRunning(port);
     }
