@@ -1,23 +1,63 @@
 # Technical Reference Documentation - @nxpress/core
 
-This document details all features and conventions of the `@nxpress/core` package. It serves as an exhaustive reference for generating final documentation.
+This document details all features, configuration options, template objects, helpers, and conventions of the `@nxpress/core` package. It serves as an exhaustive reference for generating final documentation.
 
 ---
 
 ## 1. Overview and CLI
 
-`@nxpress/core` is an Express.js-based framework for Node.js providing file-based routing, template components, cascading middlewares, and automatic response handling.
+`@nxpress/core` is an Express.js-based framework for Node.js providing file-based routing, template components, cascading middlewares, automatic response handling, and built-in template helpers.
 
 ### CLI Commands
 
 The CLI is executed via `nxpress` or `nxp` binaries:
 
-- `nxpress dev`: Starts the development server with Hot Reload and dynamic no-cache evaluation for middlewares and route handlers.
+- `nxpress dev`: Starts the development server with Hot Reload and dynamic no-cache evaluation for middlewares, route handlers, and configuration files.
 - `nxpress start`: Starts the production server.
 
 ---
 
-## 2. File-Based Routing Architecture (`app/`)
+## 2. Server Options and Configuration
+
+Server options can be configured via `nxpress.config.json` (or `.js`, `.ts`, `.mjs`, `.cjs`) in the project root, or passed directly to `nxpress(options)` / `serve(options)`.
+
+### Configuration Schema Options
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `rootDir` | `string` | `process.cwd()` | Absolute path to the project root directory. |
+| `appDir` | `string` | `app` (or `pages`) | Directory containing view templates and route files. |
+| `componentsDir` | `string` | `components` | Directory containing reusable template components. |
+| `publicDir` | `string` | `public` | Directory for serving static assets via Express static middleware. |
+| `engine` | `string` | `"ejs"` | Template engine choice (`"ejs"`, `"hbs"`, `"html"`, `"nunjucks"`, `"liquid"`). |
+| `port` | `number` | `3000` | HTTP server port number (can also be set via `process.env.PORT`). |
+| `tailwind` | `boolean \| object` | `true` | Automatic Tailwind CSS compilation (`true`, `false`, or custom input/output path object). |
+| `globals` | `object` | `{}` | Application-wide default global variables automatically injected into all template views. |
+| `secureEnv` | `boolean` | `true` | Security flag filtering environment variables exposed to templates via `E` / `env`. |
+| `isDev` | `boolean` | Auto-detected | Development mode flag enabling Hot Reload and live route re-scanning. |
+
+### Configuration Example (`nxpress.config.json`)
+
+```json
+{
+  "$schema": "https://unpkg.com/@nxpress/core@latest/schema.json",
+  "port": 3000,
+  "engine": "ejs",
+  "appDir": "app",
+  "componentsDir": "components",
+  "publicDir": "public",
+  "secureEnv": true,
+  "globals": {
+    "siteName": "My Store",
+    "author": "Nxpress Team",
+    "currency": "$"
+  }
+}
+```
+
+---
+
+## 3. File-Based Routing Architecture (`app/`)
 
 The directory structure inside `app/` defines the application routes.
 
@@ -28,21 +68,21 @@ The directory structure inside `app/` defines the application routes.
 - API route files: Any `.ts` or `.js` file located under `app/api/`
 - Folder middleware files: `middleware.ts` or `middleware.js`
 
-### Dynamic Route Syntax
+### Dynamic Route Syntax and Slugs
 
-- `app/products/[id].ejs` -> Route `/products/:id`
-- `app/blog/[...slug].ejs` -> Route `/blog/*`
-- `app/index.ejs` -> Route `/`
+- Single Parameter (`app/products/[id].ejs`): Matches `/products/:id`. Accessible in companion via `req.params.id` and in views via `R.params.id`.
+- Catch-All Wildcard Slug (`app/docs/[...slug].ejs`): Matches `/docs/*`. Accessible in companion via `req.params.slug` or `req.params[0]` and in views via `R.params.slug` or `R.params[0]`.
+- Index Route (`app/index.ejs`): Matches `/`.
 
 ### Reserved Filenames
 
-- `layout.ejs` (or view engine extension): Nested layout template
-- `middleware.ts` / `middleware.js`: Directory-level middleware (never routed)
-- `404.ejs`, `500.ejs`, `not-found.ejs`, `error.ejs`: Custom error pages
+- `layout.ejs` (or view engine extension): Nested layout template.
+- `middleware.ts` / `middleware.js`: Directory-level middleware (never routed as a page).
+- `404.ejs`, `500.ejs`, `not-found.ejs`, `error.ejs`: Custom error pages.
 
 ---
 
-## 3. Page Companion Files (`app/**/*.ts`)
+## 4. Page Companion Files (`app/**/*.ts`)
 
 Every view template page can be paired with a TypeScript/JavaScript companion file to fetch data before rendering.
 
@@ -67,13 +107,122 @@ export default async function props(req: Request, res: Response) {
 
 Backward Compatibility: Named export `export async function props(req, res)` is also supported.
 
-### Reserved System Keys
+---
 
-The following keys are reserved and automatically injected into view templates: `G`, `global`, `R`, `req`, `E`, `env`, `$`, `tailwind`.
+## 5. Injected Template Variables and Objects
+
+Nxpress automatically injects standard helper objects and variables into every view template rendering context.
+
+### 1. `R` / `req` (Request Object)
+
+A sanitized representation of the current HTTP request:
+
+- `R.url`: Full requested URL path (e.g. `/products/123?sort=asc`)
+- `R.path`: Pathname without query string (e.g. `/products/123`)
+- `R.full`: Full URL string with protocol and host (e.g. `http://localhost:3000/products/123`)
+- `R.base`: Base URL with protocol and host (e.g. `http://localhost:3000`)
+- `R.method`: HTTP method in uppercase (`GET`, `POST`, etc.)
+- `R.query`: Query parameters object (e.g. `{ sort: 'asc' }`)
+- `R.params`: Dynamic route path parameters object (e.g. `{ id: '123' }` or `{ '0': 'guide/setup' }`)
+- `R.headers`: HTTP request headers object
+- `R.cookies`: Request cookies object
+- `R.ip`: Client IP address
+- `R.protocol`: Protocol (`http` or `https`)
+- `R.host`: Host header value
+
+### 2. `E` / `env` (Environment Variables)
+
+Exposes environment variables to templates.
+
+- **When `secureEnv: true` (default)**: Filters `process.env` to only include `NODE_ENV` and variables starting with `PUBLIC_` or `NEXT_PUBLIC_`.
+- **When `secureEnv: false`**: Exposes all variables in `process.env`.
+
+```html
+<!-- Accessing environment variables in template -->
+<p>Environment: <%= E.NODE_ENV %></p>
+<p>Public API Key: <%= E.PUBLIC_API_KEY %></p>
+```
+
+### 3. `G` / `global` (Global Context)
+
+Merged object containing custom `globals` from configuration, all built-in helpers, and the component renderer `$`.
+
+### 4. `$` (Component Renderer)
+
+Function used inside templates to include reusable components from `componentsDir`:
+
+```html
+<%- $("Navbar", { activePage: "home" }) %>
+```
+
+### 5. Automatic Helpers and Assets
+
+- `year`: Current 4-digit year (`2026`).
+- `now`: Current JavaScript `Date` object instance.
+- `tailwindCssUrl`: Path to the compiled Tailwind stylesheet (default `"/tailwind.css"`).
+- `tailwind`: Ready-to-render HTML `<link>` tag string: `<link rel="stylesheet" href="/tailwind.css"/>`.
 
 ---
 
-## 4. API Routes (`app/api/**/*.ts`)
+## 6. Built-in Template Helpers
+
+Nxpress registers built-in helper functions accessible in all supported template engines (`ejs`, `hbs`, `nunjucks`, `liquid`).
+
+### Formatting and String Helpers
+
+- `str(val)`: Converts value or object to string (`JSON.stringify` for objects).
+- `json(val)`: Parses a JSON string into an object.
+- `lower(val)`: Converts string to lowercase.
+- `upper(val)`: Converts string to uppercase.
+- `capitalize(val)`: Capitalizes the first letter of string.
+- `truncate(val, len)`: Truncates string to specified length (default `50`) with `...`.
+- `join(arr, sep)`: Joins array elements into a string using separator (default `", "`).
+
+### Comparisons and Logic Helpers
+
+- `eq(a, b)`: Returns `true` if `a === b`.
+- `ne(a, b)`: Returns `true` if `a !== b`.
+- `gt(a, b)`: Returns `true` if `a > b`.
+- `gte(a, b)`: Returns `true` if `a >= b`.
+- `lt(a, b)`: Returns `true` if `a < b`.
+- `lte(a, b)`: Returns `true` if `a <= b`.
+- `and(...args)`: Returns `true` if all arguments are truthy.
+- `or(...args)`: Returns `true` if any argument is truthy.
+- `not(val)`: Returns logical NOT (`!val`).
+- `ternary(cond, trueVal, falseVal)`: Returns `trueVal` if `cond` is truthy, otherwise `falseVal`.
+
+### Collections and Utility Helpers
+
+- `len(val)`: Returns length of array, string, or object keys count.
+- `contains(arr, val)` / `includes(arr, val)`: Checks if array or string contains value.
+- `add(a, b)`: Adds two numbers.
+- `sub(a, b)`: Subtracts `b` from `a`.
+
+### Helper Examples in EJS
+
+```html
+<p>Total Items: <%= len(products) %></p>
+<p>Copyright <%= year %></p>
+<p>Status: <%= ternary(eq(user.role, 'admin'), 'Admin User', 'Standard User') %></p>
+```
+
+---
+
+## 7. Component System (`components/`)
+
+Components stored in `componentsDir` (e.g. `components/Navbar.ejs`, `components/Footer.ejs`) can be rendered inside any view template or inside other components using `$`.
+
+```html
+<%- $("Navbar", { title: G.siteName }) %>
+<main>
+  <%- $("ProductCard", { product: p }) %>
+</main>
+<%- $("Footer") %>
+```
+
+---
+
+## 8. API Routes (`app/api/**/*.ts`)
 
 Any file under `app/api/` is registered as an API route handler.
 
@@ -114,7 +263,7 @@ If an API handler function returns a value:
 
 ---
 
-## 5. Folder-Level Middlewares (`middleware.ts` / `middleware.js`)
+## 9. Folder-Level Middlewares (`middleware.ts` / `middleware.js`)
 
 The filename `middleware.ts` (or `.js`) is reserved and is never routed as a page or matched as a view companion.
 
@@ -150,7 +299,7 @@ The `ignore` export accepts an array of route paths or wildcard patterns (`*`). 
 
 ---
 
-## 6. Route-Level Middlewares (Companion & API Files)
+## 10. Route-Level Middlewares (Companion & API Files)
 
 To attach middlewares to a specific route, two strict exports are available in companion (`app/**/*.ts`) and API (`app/api/**/*.ts`) files.
 
@@ -189,7 +338,7 @@ If both `middleware` AND `middlewares` are exported in the same file, they are m
 
 ---
 
-## 7. Middleware Execution Model
+## 11. Middleware Execution Model
 
 ### Optional `next()` Calling
 
@@ -199,9 +348,9 @@ Middlewares are not required to call `next()`. If a function completes execution
 
 Traditional Express middlewares expecting 3 parameters `(req, res, next)` and calling `next()` manually (e.g. `cors()`, `helmet()`) remain 100% compatible without double execution.
 
-### Hot Reloading
+### Hot Reloading & Swappable Router
 
-In development mode (`nxpress dev`), middlewares and route handlers are wrapped dynamically. Changes to `middleware.ts` or route files take effect on the very next HTTP request without stale caching.
+In development mode (`nxpress dev`), routes and middlewares use a swappable Express router. Any changes to `middleware.ts`, route files, or `nxpress.config.json` immediately re-register routes and reload configuration options without restarting the Node.js server.
 
 ### Error Formatting
 
@@ -209,7 +358,7 @@ All middleware and route configuration errors display file paths relative to the
 
 ---
 
-## 8. Package Exports and Types
+## 12. Package Exports and Types
 
 The `@nxpress/core` module re-exports core utilities and types:
 
@@ -224,9 +373,11 @@ import {
   Express,
   NextFunction,
   RequestHandler,
-  Handler
+  Handler,
+  builtinHelpers
 } from '@nxpress/core';
 ```
 
 - `Handler` / `RequestHandler`: Standard Express handler and middleware type re-exported from Express.
 - `Request`, `Response`, `Express`, `NextFunction`: Re-exported Express types.
+- `builtinHelpers`: Object containing all built-in template helper functions.
