@@ -1,0 +1,8 @@
+<h1>📦 Catalogue de Produits</h1>
+<p style="color: #94a3b8; margin-bottom: 1.5rem;">Découvrez tous nos équipements disponibles.</p>
+
+<div class="grid">
+  {{#each products}}
+    {{> ProductCard id=this.id name=this.name description=this.description price=this.price category=this.category }}
+  {{/each}}
+</div>

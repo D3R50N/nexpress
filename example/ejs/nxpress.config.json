@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/@nxpress/core@latest/schema.json",
+  "port": 3000,
+  "engine": "ejs",
+  "appDir": "app",
+  "componentsDir": "components",
+  "publicDir": "public",
+  "globals": {
+     "siteName": "Nexpress EJS Store",
+    "author": "Nexpress Team",
+    "version": "1.0.0",
+    "currency": "€",
+    "title": "Tesd",
+    "description": ""
+  }
+}
