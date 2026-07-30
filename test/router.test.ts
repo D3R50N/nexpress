@@ -1,6 +1,6 @@
 import assert from 'assert';
 import path from 'path';
-import { fileToRoutePath, findLayoutsForRoute } from '../src/router';
+import { fileToRoutePath, findLayoutsForRoute, getRouteMiddlewares } from '../src/router';
 import { builtinHelpers } from '../src/helpers';
 import { renderComponent, registerComponents } from '../src/components';
 import { getFilteredEnv } from '../src/env';
@@ -74,6 +74,21 @@ async function testExecuteMw() {
     () => ({ ok: true })
   ], req, resJson, (() => {}) as any);
   assert.deepStrictEqual(sentJson, { ok: true });
+
+  // 3. Strict middleware & middlewares validation
+  assert.throws(() => {
+    getRouteMiddlewares({ middleware: [() => {}] });
+  }, /cannot be an Array/);
+
+  assert.throws(() => {
+    getRouteMiddlewares({ middlewares: () => {} });
+  }, /cannot be a function/);
+
+  const merged = getRouteMiddlewares({
+    middleware: () => {},
+    middlewares: [() => {}, () => {}]
+  });
+  assert.strictEqual(merged.length, 3);
 }
 
 testExecuteMw().then(() => {

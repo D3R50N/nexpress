@@ -265,6 +265,12 @@ export async function executeMiddlewareList(
   await runStep();
 }
 
+function toRelPath(filePath: string): string {
+  if (!filePath) return "";
+  const rel = path.relative(process.cwd(), filePath);
+  return rel || filePath;
+}
+
 /**
  * Creates a dynamic RequestHandler wrapper for a folder-level middleware file.
  * Clears require cache and reloads the file on each request to support instant dev updates.
@@ -291,15 +297,23 @@ export function createFolderMiddlewareWrapper(
         return next();
       }
 
-      const rawMw =
-        mwModule.default ||
-        mwModule.middlewares ||
-        mwModule.middleware ||
-        mwModule;
+      const rawMwList: any[] = [];
+      // Collect all exported functions or arrays of functions (except ignore)
+      for (const key of Object.keys(mwModule)) {
+        if (key === "ignore") continue;
+        const val = mwModule[key];
+        if (Array.isArray(val)) {
+          val.forEach((item) => {
+            if (typeof item === "function") rawMwList.push(item);
+          });
+        } else if (typeof val === "function") {
+          rawMwList.push(val);
+        }
+      }
 
-      await executeMiddlewareList(rawMw, req, res, next);
+      await executeMiddlewareList(rawMwList, req, res, next);
     } catch (err) {
-      logger.error(`Error executing dynamic middleware at ${mwFile}:`, err);
+      logger.error(`Error executing dynamic middleware at ${toRelPath(mwFile)}:`, err);
       next(err);
     }
   };
@@ -307,11 +321,13 @@ export function createFolderMiddlewareWrapper(
 
 /**
  * Creates a dynamic RequestHandler wrapper for route-level middlewares.
+ * Strictly checks `middleware` (must be function) and `middlewares` (must be array) exports and merges them.
  */
 export function createRouteMiddlewareWrapper(
   filePath: string,
 ): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
+    const relFile = toRelPath(filePath);
     try {
       try {
         delete require.cache[require.resolve(filePath)];
@@ -324,10 +340,36 @@ export function createRouteMiddlewareWrapper(
         routeModule = require(filePath);
       }
 
-      const rawMw = routeModule.middlewares || routeModule.middleware;
-      await executeMiddlewareList(rawMw, req, res, next);
+      const rawMwList: any[] = [];
+
+      if (routeModule.middleware !== undefined) {
+        if (Array.isArray(routeModule.middleware)) {
+          const msg = `Export 'middleware' in "${relFile}" cannot be an Array. Use a single function for 'middleware' or export an Array as 'middlewares'.`;
+          throw new Error(msg);
+        } else if (typeof routeModule.middleware === "function") {
+          rawMwList.push(routeModule.middleware);
+        } else {
+          const msg = `Export 'middleware' in "${relFile}" must be a function.`;
+          throw new Error(msg);
+        }
+      }
+
+      if (routeModule.middlewares !== undefined) {
+        if (typeof routeModule.middlewares === "function") {
+          const msg = `Export 'middlewares' in "${relFile}" cannot be a single function. Use an Array for 'middlewares' or export a single function as 'middleware'.`;
+          throw new Error(msg);
+        } else if (Array.isArray(routeModule.middlewares)) {
+          routeModule.middlewares.forEach((item: any) => {
+            if (typeof item === "function") rawMwList.push(item);
+          });
+        } else {
+          const msg = `Export 'middlewares' in "${relFile}" must be an Array.`;
+          throw new Error(msg);
+        }
+      }
+
+      await executeMiddlewareList(rawMwList, req, res, next);
     } catch (err) {
-      logger.error(`Error executing route middleware at ${filePath}:`, err);
       next(err);
     }
   };
@@ -377,15 +419,34 @@ export function getFolderMiddlewares(
 /**
  * Resolves route-level middlewares exported by an API route module or companion page module.
  */
-export function getRouteMiddlewares(routeModule: any): RequestHandler[] {
+export function getRouteMiddlewares(routeModule: any, filePath?: string): RequestHandler[] {
   if (!routeModule) return [];
-  const rawMw = routeModule.middlewares || routeModule.middleware;
-  if (Array.isArray(rawMw)) {
-    return rawMw.filter((fn) => typeof fn === "function");
-  } else if (typeof rawMw === "function") {
-    return [rawMw];
+  const list: RequestHandler[] = [];
+  const relFile = filePath ? toRelPath(filePath) : "route";
+
+  if (routeModule.middleware !== undefined) {
+    if (Array.isArray(routeModule.middleware)) {
+      const msg = `[Nxpress Error] Export 'middleware' in "${relFile}" cannot be an Array. Use 'middlewares' for an Array.`;
+      logger.error(msg);
+      throw new Error(msg);
+    } else if (typeof routeModule.middleware === "function") {
+      list.push(routeModule.middleware);
+    }
   }
-  return [];
+
+  if (routeModule.middlewares !== undefined) {
+    if (typeof routeModule.middlewares === "function") {
+      const msg = `[Nxpress Error] Export 'middlewares' in "${relFile}" cannot be a function. Use 'middleware' for a single function.`;
+      logger.error(msg);
+      throw new Error(msg);
+    } else if (Array.isArray(routeModule.middlewares)) {
+      routeModule.middlewares.forEach((item: any) => {
+        if (typeof item === "function") list.push(item);
+      });
+    }
+  }
+
+  return list;
 }
 
 
