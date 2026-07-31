@@ -191,6 +191,17 @@ Nxpress registers built-in helper functions accessible in all supported template
 - `not(val)`: Returns logical NOT (`!val`).
 - `ternary(cond, trueVal, falseVal)`: Returns `trueVal` if `cond` is truthy, otherwise `falseVal`.
 
+### Lucide Icon Helpers (`icon` / `I`)
+
+- `icon(name, [className], [extraAttrs])` / `I(name, [className], [extraAttrs])`: Renders a zero-dependency server-side Lucide SVG icon by name. Supports kebab-case (`"shopping-cart"`), camelCase (`"shoppingCart"`), or PascalCase (`"ShoppingCart"`).
+
+```html
+<!-- Rendering icons with Tailwind CSS classes in EJS -->
+<%- icon('user', 'w-5 h-5 text-sky-500') %>
+<%- I('moon', 'w-5 h-5 dark:hidden') %>
+<%- I('sun', 'w-5 h-5 hidden dark:block') %>
+```
+
 ### Collections and Utility Helpers
 
 - `len(val)`: Returns length of array, string, or object keys count.
@@ -202,6 +213,7 @@ Nxpress registers built-in helper functions accessible in all supported template
 
 ```html
 <p>Total Items: <%= len(products) %></p>
+<p>User Icon: <%- I('user', 'w-4 h-4 inline') %></p>
 <p>Copyright <%= year %></p>
 <p>Status: <%= ternary(eq(user.role, 'admin'), 'Admin User', 'Standard User') %></p>
 ```

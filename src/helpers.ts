@@ -1,6 +1,77 @@
 import hbs from 'hbs';
+import * as lucideIcons from 'lucide';
+
+function toPascalCase(str: string): string {
+  return String(str ?? '')
+    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word) => word.toUpperCase())
+    .replace(/[-_\s]+/g, '');
+}
+
+/**
+ * Renders a Lucide SVG icon string by icon name and optional CSS classes or extra attributes.
+ */
+export function renderLucideIcon(
+  name: string,
+  className: string = '',
+  extraAttrs: Record<string, string> = {}
+): string {
+  if (!name) return '';
+
+  const pascalName = toPascalCase(name);
+  const iconData = (lucideIcons as any)[pascalName] || (lucideIcons as any)[name];
+
+  if (!iconData || !Array.isArray(iconData)) {
+    return '';
+  }
+
+  const defaultAttrs: Record<string, string> = {
+    xmlns: 'http://www.w3.org/2000/svg',
+    width: '24',
+    height: '24',
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': '2',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+  };
+
+  if (className) {
+    defaultAttrs['class'] = className;
+  }
+
+  const mergedAttrs = { ...defaultAttrs, ...extraAttrs };
+  const attrString = Object.entries(mergedAttrs)
+    .map(([key, val]) => `${key}="${String(val).replace(/"/g, '&quot;')}"`)
+    .join(' ');
+
+  const childrenHtml = iconData
+    .map(([tag, attrs]: [string, Record<string, any>]) => {
+      const childAttrs = Object.entries(attrs || {})
+        .map(([k, v]) => `${k}="${String(v).replace(/"/g, '&quot;')}"`)
+        .join(' ');
+      return `<${tag} ${childAttrs}></${tag}>`;
+    })
+    .join('');
+
+  return `<svg ${attrString}>${childrenHtml}</svg>`;
+}
 
 export const builtinHelpers = {
+  /**
+   * Renders a Lucide SVG icon by name (e.g. icon('user', 'w-5 h-5')).
+   */
+  icon(name: string, className: string = '', extraAttrs: Record<string, string> = {}): string {
+    return renderLucideIcon(name, className, extraAttrs);
+  },
+
+  /**
+   * Alias for icon helper (e.g. I('user', 'w-5 h-5')).
+   */
+  I(name: string, className: string = '', extraAttrs: Record<string, string> = {}): string {
+    return renderLucideIcon(name, className, extraAttrs);
+  },
+
   /**
    * Converts a value or object to string (JSON.stringify for objects).
    */
@@ -171,6 +242,9 @@ export const builtinHelpers = {
   },
 };
 
+export const icon = builtinHelpers.icon;
+export const I = builtinHelpers.I;
+
 /**
  * Registers all built-in helpers with Handlebars.
  */
@@ -217,4 +291,3 @@ export function ejsToEta(content: string): string {
     .replace(/<%_/g, '<%-')
     .replace(/_%>/g, '-%>');
 }
-

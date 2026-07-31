@@ -245,17 +245,35 @@
   .grid {
     display: grid;
   }
+  .hidden {
+    display: none;
+  }
+  .inline {
+    display: inline;
+  }
   .inline-block {
     display: inline-block;
   }
   .inline-flex {
     display: inline-flex;
   }
+  .h-4 {
+    height: calc(var(--spacing) * 4);
+  }
+  .h-5 {
+    height: calc(var(--spacing) * 5);
+  }
   .h-16 {
     height: calc(var(--spacing) * 16);
   }
   .min-h-screen {
     min-height: 100vh;
+  }
+  .w-4 {
+    width: calc(var(--spacing) * 4);
+  }
+  .w-5 {
+    width: calc(var(--spacing) * 5);
   }
   .w-full {
     width: 100%;
@@ -523,48 +541,48 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
-  @media (prefers-color-scheme: dark) {
-    .dark\:border-slate-700\/60 {
-      border-color: color-mix(in srgb, oklch(37.2% 0.044 257.287) 60%, transparent);
-    }
+  .dark\:block:where(.dark, .dark *) {
+    display: block;
+  }
+  .dark\:hidden:where(.dark, .dark *) {
+    display: none;
+  }
+  .dark\:border-slate-700\/60:where(.dark, .dark *) {
+    border-color: color-mix(in srgb, oklch(37.2% 0.044 257.287) 60%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
-      .dark\:border-slate-700\/60 {
-        border-color: color-mix(in oklab, var(--color-slate-700) 60%, transparent);
-      }
+      border-color: color-mix(in oklab, var(--color-slate-700) 60%, transparent);
     }
-    .dark\:bg-slate-700 {
-      background-color: var(--color-slate-700);
-    }
-    .dark\:bg-slate-800 {
-      background-color: var(--color-slate-800);
-    }
-    .dark\:bg-slate-800\/80 {
-      background-color: color-mix(in srgb, oklch(27.9% 0.041 260.031) 80%, transparent);
-    }
+  }
+  .dark\:bg-slate-700:where(.dark, .dark *) {
+    background-color: var(--color-slate-700);
+  }
+  .dark\:bg-slate-800:where(.dark, .dark *) {
+    background-color: var(--color-slate-800);
+  }
+  .dark\:bg-slate-800\/80:where(.dark, .dark *) {
+    background-color: color-mix(in srgb, oklch(27.9% 0.041 260.031) 80%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
-      .dark\:bg-slate-800\/80 {
-        background-color: color-mix(in oklab, var(--color-slate-800) 80%, transparent);
-      }
+      background-color: color-mix(in oklab, var(--color-slate-800) 80%, transparent);
     }
-    .dark\:bg-slate-900 {
-      background-color: var(--color-slate-900);
-    }
-    .dark\:text-slate-100 {
-      color: var(--color-slate-100);
-    }
-    .dark\:text-slate-300 {
-      color: var(--color-slate-300);
-    }
-    .dark\:text-slate-400 {
-      color: var(--color-slate-400);
-    }
-    .dark\:text-white {
-      color: var(--color-white);
-    }
-    @media (hover: hover) {
-      .dark\:hover\:text-sky-400:hover {
-        color: var(--color-sky-400);
-      }
+  }
+  .dark\:bg-slate-900:where(.dark, .dark *) {
+    background-color: var(--color-slate-900);
+  }
+  .dark\:text-slate-100:where(.dark, .dark *) {
+    color: var(--color-slate-100);
+  }
+  .dark\:text-slate-300:where(.dark, .dark *) {
+    color: var(--color-slate-300);
+  }
+  .dark\:text-slate-400:where(.dark, .dark *) {
+    color: var(--color-slate-400);
+  }
+  .dark\:text-white:where(.dark, .dark *) {
+    color: var(--color-white);
+  }
+  @media (hover: hover) {
+    .dark\:hover\:text-sky-400:where(.dark, .dark *):hover {
+      color: var(--color-sky-400);
     }
   }
 }

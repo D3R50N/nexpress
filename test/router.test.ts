@@ -20,6 +20,8 @@ const layouts = findLayoutsForRoute(path.resolve('./example/ejs'), exampleEjsDir
 assert.strictEqual(layouts.length > 0, true);
 
 console.log('Testing builtinHelpers...');
+assert.ok(builtinHelpers.icon('user', 'w-5 h-5').includes('<svg'));
+assert.ok(builtinHelpers.I('sun', 'w-4 h-4').includes('<path'));
 assert.strictEqual(builtinHelpers.str({ a: 1 }), '{"a":1}');
 assert.strictEqual(builtinHelpers.str(42), '42');
 assert.deepStrictEqual(builtinHelpers.json('{"x":10}'), { x: 10 });

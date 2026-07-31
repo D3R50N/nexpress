@@ -47,6 +47,9 @@ importers:
       liquidjs:
         specifier: ^10.27.2
         version: 10.27.2
+      lucide:
+        specifier: ^1.28.0
+        version: 1.28.0
       nunjucks:
         specifier: ^3.2.4
         version: 3.2.4(chokidar@5.0.0)
@@ -940,6 +943,9 @@ packages:
   lru-cache@11.5.2:
     resolution: {integrity: sha512-4pfM1Ff0x50o0tQwb5ucw/RzNyD0/YJME6IVcStalZuMWxdt3sR3huStTtxz4PUmvZfRguvDejasvQ2kifR11g==}
     engines: {node: 20 || >=22}
+
+  lucide@1.28.0:
+    resolution: {integrity: sha512-sxVxWEXfq7rRNzmffDBRohYBOFjfoOhrO7jGGCLNNRoY2fPjeuqi2boXR2UAROEyQUm+xe13DGOQNtnmwv6Y3w==}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -1907,6 +1913,8 @@ snapshots:
       commander: 10.0.1
 
   lru-cache@11.5.2: {}
+
+  lucide@1.28.0: {}
 
   magic-string@0.30.21:
     dependencies:

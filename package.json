@@ -16,7 +16,7 @@
     "url": "https://github.com/D3R50N/nxpress"
   },
   "scripts": {
-    "injectFiles":"node -e \"require('fs').cpSync('src/injections', 'dist/injections', { recursive: true })\"",
+    "injectFiles": "node -e \"require('fs').cpSync('src/injections', 'dist/injections', { recursive: true })\"",
     "build": "tsc && pnpm injectFiles",
     "prepublishOnly": "pnpm build",
     "dev": "tsc --watch",
@@ -52,6 +52,7 @@
     "hbs": "^4.2.1",
     "jiti": "^2.7.0",
     "liquidjs": "^10.27.2",
+    "lucide": "^1.28.0",
     "nunjucks": "^3.2.4",
     "tailwindcss": "^4.3.3"
   },
