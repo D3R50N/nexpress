@@ -381,3 +381,34 @@ import {
 - `Handler` / `RequestHandler`: Standard Express handler and middleware type re-exported from Express.
 - `Request`, `Response`, `Express`, `NextFunction`: Re-exported Express types.
 - `builtinHelpers`: Object containing all built-in template helper functions.
+
+---
+
+## 13. Framework Injections & Client API (`window.__nxpress__`)
+
+Nxpress includes an automated injection engine for live reloading, error pages, and client-side utilities.
+
+### Global Client Namespace (`window.__nxpress__`)
+
+All framework-injected client utilities share a single reserved global object: `window.__nxpress__`.
+
+### Theme Management API (`window.__nxpress__.theme`)
+
+Nxpress automatically injects a flicker-free Tailwind CSS dark mode script (`dark` class toggle on `document.documentElement`).
+
+The client-side API is accessible anywhere in the browser DOM:
+
+| Method | Return Type | Description |
+| :--- | :--- | :--- |
+| `window.__nxpress__.theme.get()` | `'dark' \| 'light'` | Returns the currently active theme (checks `localStorage` and system preference). |
+| `window.__nxpress__.theme.set(mode)` | `void` | Sets theme to `'dark'`, `'light'`, or `'system'`. Persists preference in `localStorage`. |
+| `window.__nxpress__.theme.toggle()` | `'dark' \| 'light'` | Toggles between `'dark'` and `'light'` mode and returns the new theme. |
+
+#### Usage Example in View Templates
+
+```html
+<!-- Toggle button in EJS/Handlebars/HTML -->
+<button onclick="__nxpress__.theme.toggle()">
+  🌓 Toggle Dark Mode
+</button>
+```
