@@ -1,18 +1,17 @@
 <!DOCTYPE html>
-<html lang="fr" class="dark">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> - <%= G.siteName %></title>
-  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200">
   <%- $('Navbar') %>
 
   <main class="flex-1 max-w-4xl w-full mx-auto p-6">
     <%- body %>
   </main>
 
-  <%- $('Footer') %>
+  <%- $('footer') %>
 </body>
 </html>

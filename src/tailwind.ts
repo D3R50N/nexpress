@@ -78,7 +78,7 @@ export function compileTailwindCss(
 
   // Create default input CSS if it does not exist
   if (!fs.existsSync(inputCss)) {
-    const defaultCssContent = `@import "tailwindcss";\n@tailwind utilities;\n`;
+    const defaultCssContent = `@import "tailwindcss";\n@custom-variant dark (&:where(.dark, .dark *));\n@tailwind utilities;\n`;
     fs.writeFileSync(inputCss, defaultCssContent, "utf8");
   }
 
