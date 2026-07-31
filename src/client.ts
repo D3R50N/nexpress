@@ -1,12 +1,12 @@
 import { getInjection } from "./injections";
 
-export function getThemeScript(): string {
-  return getInjection("theme.html");
+export function getClientScript(): string {
+  return getInjection("client.html");
 }
 
-export function injectThemeScript(html: string): string {
-  if (!html || html.includes("__nxpress_theme__")) return html;
-  const script = getThemeScript();
+export function injectClientScript(html: string): string {
+  if (!html || html.includes("__nxpress_client__")) return html;
+  const script = getClientScript();
   if (!script) return html;
 
   if (html.includes("<head>")) {

@@ -10,7 +10,7 @@ import { createJiti } from "jiti";
 import { logger } from "./logger";
 import { injectTailwindCss } from "./tailwind";
 import { injectLiveReloadScript } from "./liveReload";
-import { injectThemeScript } from "./theme";
+import { injectClientScript } from "./client";
 import { getInjection } from "./injections";
 import { isDevMode } from "./env";
 import {
@@ -563,7 +563,7 @@ export async function renderPageView(
     }
 
     let finalHtml = injectTailwindCss(renderedHtml, tailwindCssUrl);
-    finalHtml = injectThemeScript(finalHtml);
+    finalHtml = injectClientScript(finalHtml);
     if (isDevMode(options)) {
       finalHtml = injectLiveReloadScript(finalHtml);
     }
