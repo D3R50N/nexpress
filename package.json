@@ -16,7 +16,8 @@
     "url": "https://github.com/D3R50N/nxpress"
   },
   "scripts": {
-    "build": "tsc",
+    "injectFiles":"node -e \"require('fs').cpSync('src/injections', 'dist/injections', { recursive: true })\"",
+    "build": "tsc && pnpm injectFiles",
     "prepublishOnly": "pnpm build",
     "dev": "tsc --watch",
     "example": "tsx example/ejs/server.ts",

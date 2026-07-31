@@ -10,6 +10,8 @@ import { createJiti } from "jiti";
 import { logger } from "./logger";
 import { injectTailwindCss } from "./tailwind";
 import { injectLiveReloadScript } from "./liveReload";
+import { injectThemeScript } from "./theme";
+import { getInjection } from "./injections";
 import { isDevMode } from "./env";
 import {
   builtinHelpers,
@@ -561,6 +563,7 @@ export async function renderPageView(
     }
 
     let finalHtml = injectTailwindCss(renderedHtml, tailwindCssUrl);
+    finalHtml = injectThemeScript(finalHtml);
     if (isDevMode(options)) {
       finalHtml = injectLiveReloadScript(finalHtml);
     }
@@ -796,20 +799,7 @@ export function registerErrorHandlers(
       );
     }
 
-    let html404 = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>404 Not Found</title>
-</head>
-<body style="font-family: system-ui, -apple-system, sans-serif; background: #000000; color: #02FAFC; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0;">
-  <div style="text-align: center;">
-    <h1 style="font-size: 6rem; font-weight: 900; margin: 0; color: #02FAFC; letter-spacing: -0.05em;">404</h1>
-    <p style="font-size: 1.75rem; font-weight: 600; color: #02FAFC; margin-top: 0.5rem; opacity: 0.9;">Page Not Found</p>
-  </div>
-</body>
-</html>`;
+    let html404 = getInjection("404.html");
     if (isDevMode(options)) {
       html404 = injectLiveReloadScript(html404);
     }
@@ -842,20 +832,7 @@ export function registerErrorHandlers(
       return res.status(500).send(formatDev500ErrorHtml(err));
     }
 
-    let html500 = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>500 Internal Server Error</title>
-</head>
-<body style="font-family: system-ui, -apple-system, sans-serif; background: #000000; color: #02FAFC; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0;">
-  <div style="text-align: center;">
-    <h1 style="font-size: 6rem; font-weight: 900; margin: 0; color: #02FAFC; letter-spacing: -0.05em;">500</h1>
-    <p style="font-size: 1.75rem; font-weight: 600; color: #02FAFC; margin-top: 0.5rem; opacity: 0.9;">Internal Server Error</p>
-  </div>
-</body>
-</html>`;
+    let html500 = getInjection("500.html");
     res.status(500).send(html500);
   });
 }
@@ -895,79 +872,11 @@ function formatDev500ErrorHtml(err: any): string {
   const stack = err?.stack || String(err || "");
   const name = err?.name || "Runtime Error";
 
-  let html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(name)} - ${escapeHtml(message)}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0b0f19;
-      color: #f8fafc;
-      margin: 0;
-      padding: 2rem;
-      box-sizing: border-box;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      width: 100%;
-      max-width: 900px;
-      background: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-    }
-    .badge {
-      display: inline-block;
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      margin-bottom: 1rem;
-    }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: #02FAFC;
-      margin: 0 0 1rem 0;
-      line-height: 1.3;
-      word-break: break-word;
-    }
-    pre {
-      background: #030712;
-      border: 1px solid #1f2937;
-      color: #cbd5e1;
-      padding: 1.25rem;
-      border-radius: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.875rem;
-      line-height: 1.6;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin: 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <span class="badge">500 ${escapeHtml(name)}</span>
-    <h1>${escapeHtml(message)}</h1>
-    <pre>${escapeHtml(stack)}</pre>
-  </div>
-</body>
-</html>`;
+  let template = getInjection("500-dev.html");
+  let html = template
+    .replace(/\{\{NAME\}\}/g, escapeHtml(name))
+    .replace(/\{\{MESSAGE\}\}/g, escapeHtml(message))
+    .replace(/\{\{STACK\}\}/g, escapeHtml(stack));
 
   return injectLiveReloadScript(html);
 }

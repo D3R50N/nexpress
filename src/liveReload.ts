@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { getInjection } from "./injections";
 
 const clients = new Set<Response>();
 
@@ -30,52 +31,18 @@ export function notifyLiveReload() {
   }
 }
 
-export const LIVE_RELOAD_SCRIPT = `<script id="__nxpress_live_reload__">
-(function() {
-  if (window.__nxpress_sse__) return;
-  window.__nxpress_sse__ = true;
+export function getLiveReloadScript(): string {
+  return getInjection("liveReload.html");
+}
 
-  function connect() {
-    var es = new EventSource('/nxpress/live-reload');
-    var isConnected = false;
-
-    es.onopen = function() {
-      isConnected = true;
-    };
-
-    es.onmessage = function(e) {
-      if (e.data === 'reload') {
-        location.reload();
-      }
-    };
-
-    es.onerror = function() {
-      es.close();
-      if (isConnected) {
-        var timer = setInterval(function() {
-          fetch('/nxpress/live-reload', { method: 'HEAD' })
-            .then(function(res) {
-              if (res.ok || res.status < 400) {
-                clearInterval(timer);
-                location.reload();
-              }
-            })
-            .catch(function() {});
-        }, 250);
-      } else {
-        setTimeout(connect, 1000);
-      }
-    };
-  }
-
-  connect();
-})();
-</script>`;
+export const LIVE_RELOAD_SCRIPT = getLiveReloadScript();
 
 export function injectLiveReloadScript(html: string): string {
   if (html.includes("__nxpress_live_reload__")) return html;
+  const script = getLiveReloadScript();
   if (html.includes("</body>")) {
-    return html.replace("</body>", `${LIVE_RELOAD_SCRIPT}\n</body>`);
+    return html.replace("</body>", `${script}\n</body>`);
   }
-  return html + LIVE_RELOAD_SCRIPT;
+  return html + script;
 }
+
