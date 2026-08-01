@@ -4,68 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{NAME}} - {{MESSAGE}}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0b0f19;
-      color: #f8fafc;
-      margin: 0;
-      padding: 2rem;
-      box-sizing: border-box;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      width: 100%;
-      max-width: 900px;
-      background: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-    }
-    .badge {
-      display: inline-block;
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      font-size: 0.75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      margin-bottom: 1rem;
-    }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: #02FAFC;
-      margin: 0 0 1rem 0;
-      line-height: 1.3;
-      word-break: break-word;
-    }
-    pre {
-      background: #030712;
-      border: 1px solid #1f2937;
-      color: #cbd5e1;
-      padding: 1.25rem;
-      border-radius: 8px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.875rem;
-      line-height: 1.6;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      margin: 0;
-    }
-  </style>
+  <script>(()=>{const e=localStorage.getItem("theme");(e==="dark"||!e&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.documentElement.classList.add("dark")})();</script>
+  <style>.card,body{background:#fff;padding:2rem}.badge,h1{font-weight:700}body,h1{color:#171717}*{box-sizing:border-box}body,html{margin:0;min-height:100%}body{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transition:background .2s,color .2s}.card{width:100%;max-width:900px;border:1px solid #e5e5e5;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.06)}.badge{display:inline-block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;padding:.25rem .75rem;border-radius:9999px;margin-bottom:1rem}h1{font-size:1.5rem;margin:0 0 1rem;line-height:1.3;word-break:break-word}pre{background:#f5f5f5;border:1px solid #e5e5e5;color:#404040;padding:1.25rem;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.875rem;line-height:1.6;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:0}html.dark body{background:#000;color:#ededed}html.dark .card{background:#111;border-color:#262626;box-shadow:0 25px 50px -12px rgba(0,0,0,.7)}html.dark .badge{background:rgba(239,68,68,.15);color:#f87171;border-color:rgba(239,68,68,.3)}html.dark h1{color:#fafafa}html.dark pre{background:#030303;border-color:#262626;color:#cbd5e1}@media (max-width:600px){body{padding:1rem}.card{padding:1.25rem;border-radius:12px}h1{font-size:1.25rem}}</style>
 </head>
 <body>
-  <div class="card">
-    <span class="badge">500 {{NAME}}</span>
+  <div style="width:3em; aspect-ratio: 1; position: absolute; right: 1em; bottom:1em; background:#000; padding: 10px; border-radius: 50%;">
+    <svg width="100%" height="100%" viewBox="0 0 251 299" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8.99955 293.728C11.3996 290.428 14.3996 286.628 15.5996 285.228C16.7996 283.828 19.0996 280.928 20.5996 278.628C23.6996 274.328 32.4996 262.728 45.8996 245.228C50.3996 239.428 58.1996 229.128 63.1996 222.328C68.2996 215.528 73.2996 209.028 74.2996 207.828C76.4996 205.428 93.5996 182.828 102.3 171.128C105.5 166.828 107.8 162.828 107.5 162.228C107.1 161.628 98.0996 161.228 83.6996 161.228H60.4996L63.9996 158.228C65.8996 156.528 68.3996 154.428 69.5996 153.428C72.3996 151.128 86.3996 138.828 86.9996 138.228C87.2996 137.928 91.9996 133.928 97.4996 129.228C103 124.628 108.2 120.028 109 119.028C109.8 118.028 111.9 116.228 113.6 115.028C115.4 113.728 120.6 109.428 125.1 105.328C129.7 101.228 136.4 95.3277 139.9 92.3277C146.8 86.3277 153.9 80.0277 164.2 71.0277C167.8 67.9277 173.5 62.9277 177 60.0277C180.5 57.1277 187.6 50.9277 192.9 46.2277C198.2 41.5277 205.7 35.0277 209.5 31.7277C213.4 28.4277 220.3 22.3277 225 18.2277C240.3 4.62773 247.4 -1.27227 246.5 0.227729C246 1.02773 242.4 5.92773 238.6 11.1277C234.7 16.3277 230.6 21.7277 229.5 23.2277C225.8 28.2277 210.3 48.6277 202.5 58.7277C198.3 64.2277 193.5 70.5277 191.9 72.7277C190.4 74.9277 188.5 77.4277 187.7 78.2277C187 79.0277 183.7 83.3277 180.5 87.7277C177.2 92.1277 173.8 96.6277 172.8 97.6277C171.8 98.7277 171 99.9277 171 100.328C171 100.728 170.3 101.728 169.5 102.628C168.6 103.428 164.3 109.028 159.9 114.928C152.1 125.328 151.9 125.728 154.1 126.328C155.4 126.728 165.7 127.028 177 127.128L197.5 127.228L192.4 132.028C189.6 134.628 184.2 139.428 180.5 142.728C169.7 152.128 165 156.328 159.1 161.828C156 164.728 149.2 170.728 144 175.228C138.8 179.828 134.3 183.828 134 184.128C133.7 184.528 129.5 188.328 124.5 192.728C119.6 197.028 111.7 204.028 107 208.228C82.7996 230.028 74.2996 237.628 63.3996 247.228C56.8996 253.028 42.4996 265.828 31.4996 275.828C20.4996 285.828 9.89955 295.228 7.99955 296.828C4.59955 299.728 4.59955 299.728 8.99955 293.728Z" fill="#00FBFD" />
+      <path d="M0.2 149.628L0.5 16.7275L26.2 16.4275L51.8 16.2275L55.1 20.4275C56.9 22.8275 58.9 25.2275 59.5 25.7275C60.1 26.3275 61.5 28.1275 62.6 29.7275C63.6 31.4275 66.5 35.2275 68.9 38.2275C71.3 41.2275 74.5 45.3275 76 47.2275C77.5 49.1275 80.8 53.2275 83.3 56.3275C85.8 59.4275 89.8 64.6275 92.2 67.8275C94.6 71.1275 97.5 74.8275 98.7 76.2275C102.3 80.5275 109.4 89.5275 111.8 92.8275L114 95.9275L108.7 100.828C105.8 103.528 100.3 108.428 96.4 111.728C92.6 114.928 86.7 120.228 83.2 123.428C77.8 128.428 76.7 129.028 75 128.028C74 127.328 72.7 125.928 72.2 124.828C71.4 123.028 69 119.928 58.4 107.028C57.7 106.028 56.3 105.228 55.5 105.228C54.2 105.228 54 108.228 54 127.028V148.828L49.8 152.228C47.4 154.128 44.6 156.628 43.4 157.728C42.3 158.828 39.4 161.428 36.9 163.428C28.4 170.528 26 172.828 26 173.828C26 175.428 35.8 176.228 45.6 175.528L54 174.928V193.228V211.428L45.2 223.128C40.3 229.528 34.2 237.528 31.4 241.028C28.7 244.528 25.2 249.328 23.5 251.628C19.6 257.328 11.7 267.628 10.8 268.228C10.5 268.528 7.9 271.828 5.1 275.628L0 282.528L0.2 149.628Z" fill="#00FBFD" />
+      <path d="M195.6 281.528C193.6 278.828 190.5 274.828 188.8 272.628C187 270.328 180.1 261.528 173.5 253.128C166.9 244.728 159.8 235.828 157.8 233.328C155.7 230.828 152.5 226.728 150.8 224.328C149 221.928 145.9 218.028 144 215.628C136.6 206.728 134 203.328 134 202.928C134 202.428 158.2 180.528 167.1 172.928L171.5 169.128L175.3 173.628C177.4 176.128 180.1 179.528 181.3 181.128C191.5 194.828 193.6 197.228 195 197.028C196.3 196.728 196.5 193.428 196.7 173.228C196.8 160.328 197 148.928 197 147.828C197 146.828 199.6 143.728 202.7 140.828C205.8 138.028 211.6 132.928 215.5 129.428C229.1 117.128 230 116.228 230 115.228C230 114.628 223.5 114.128 213.3 114.028L196.5 113.728L196.2 103.228C196.1 97.4276 196.4 91.5276 196.9 90.1276C197.7 87.8276 212.2 68.0276 228.8 46.7276C232.2 42.3276 238.2 34.3276 242.1 29.0276C246 23.6276 249.5 19.0276 249.8 18.8276C250.2 18.6276 250.4 78.5276 250.3 152.028L250.1 285.728L224.6 286.028L199.2 286.228L195.6 281.528Z" fill="#330377" />
+    </svg>
+  </div>
+  <div class="card"> <span class="badge">500 {{NAME}}</span>
     <h1>{{MESSAGE}}</h1>
     <pre>{{STACK}}</pre>
   </div>

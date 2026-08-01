@@ -255,7 +255,7 @@ function setupDevWatcher(
     ignored: [tailwindOutput, "**/*.map"],
     ignoreInitial: true,
     awaitWriteFinish: {
-      stabilityThreshold: 5,
+      stabilityThreshold: 30,
     },
   });
 

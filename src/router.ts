@@ -1,7 +1,14 @@
 import fs from "fs";
 import path from "path";
 import { globSync } from "glob";
-import { Express, Router, Request, Response, RequestHandler, NextFunction } from "express";
+import {
+  Express,
+  Router,
+  Request,
+  Response,
+  RequestHandler,
+  NextFunction,
+} from "express";
 import hbs from "hbs";
 import { Eta } from "eta";
 import nunjucks from "nunjucks";
@@ -173,7 +180,11 @@ export function isRouteIgnored(
   routePath: string,
   ignorePatterns?: string[],
 ): boolean {
-  if (!ignorePatterns || !Array.isArray(ignorePatterns) || ignorePatterns.length === 0) {
+  if (
+    !ignorePatterns ||
+    !Array.isArray(ignorePatterns) ||
+    ignorePatterns.length === 0
+  ) {
     return false;
   }
 
@@ -187,9 +198,7 @@ export function isRouteIgnored(
     // Convert wildcard pattern like /admin/* to regex ^\/admin\/.*$
     const regexString =
       "^" +
-      cleanPattern
-        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-        .replace(/\*/g, ".*") +
+      cleanPattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") +
       "$";
     const regex = new RegExp(regexString);
     return regex.test(cleanRoute);
@@ -214,7 +223,11 @@ export async function executeMiddlewareList(
 
   const runStep = async (err?: any): Promise<void> => {
     if (err) return next(err);
-    if (index >= mwList.length || res.headersSent || (res as any).writableEnded) {
+    if (
+      index >= mwList.length ||
+      res.headersSent ||
+      (res as any).writableEnded
+    ) {
       return next();
     }
 
@@ -277,9 +290,7 @@ function toRelPath(filePath: string): string {
  * Creates a dynamic RequestHandler wrapper for a folder-level middleware file.
  * Clears require cache and reloads the file on each request to support instant dev updates.
  */
-export function createFolderMiddlewareWrapper(
-  mwFile: string,
-): RequestHandler {
+export function createFolderMiddlewareWrapper(mwFile: string): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       try {
@@ -315,7 +326,10 @@ export function createFolderMiddlewareWrapper(
 
       await executeMiddlewareList(rawMwList, req, res, next);
     } catch (err) {
-      logger.error(`Error executing dynamic middleware at ${toRelPath(mwFile)}:`, err);
+      logger.error(
+        `Error executing dynamic middleware at ${toRelPath(mwFile)}:`,
+        err,
+      );
       next(err);
     }
   };
@@ -325,9 +339,7 @@ export function createFolderMiddlewareWrapper(
  * Creates a dynamic RequestHandler wrapper for route-level middlewares.
  * Strictly checks `middleware` (must be function) and `middlewares` (must be array) exports and merges them.
  */
-export function createRouteMiddlewareWrapper(
-  filePath: string,
-): RequestHandler {
+export function createRouteMiddlewareWrapper(filePath: string): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     const relFile = toRelPath(filePath);
     try {
@@ -421,7 +433,10 @@ export function getFolderMiddlewares(
 /**
  * Resolves route-level middlewares exported by an API route module or companion page module.
  */
-export function getRouteMiddlewares(routeModule: any, filePath?: string): RequestHandler[] {
+export function getRouteMiddlewares(
+  routeModule: any,
+  filePath?: string,
+): RequestHandler[] {
   if (!routeModule) return [];
   const list: RequestHandler[] = [];
   const relFile = filePath ? toRelPath(filePath) : "route";
@@ -450,8 +465,6 @@ export function getRouteMiddlewares(routeModule: any, filePath?: string): Reques
 
   return list;
 }
-
-
 
 /**
  * Renders a page view with its companion file, layout, and props.
@@ -537,6 +550,7 @@ export async function renderPageView(
     "env",
     "$",
     "tailwind",
+    "I",
   ];
   for (const key of systemReservedKeys) {
     if (key in pageProps) {
@@ -574,7 +588,8 @@ export async function renderPageView(
       if (isDevMode(options)) {
         res.status(500).send(formatDev500ErrorHtml(err));
       } else {
-        res.status(500).send("Internal Server Error");
+         let html500 = getInjection("500.html");
+          res.status(500).send(html500);
       }
     }
   }
@@ -759,7 +774,8 @@ export function registerRoutes(
       } catch (err) {
         logger.error(`Error handling route ${routePath}:`, err);
         if (!res.headersSent) {
-          res.status(500).send("Internal Server Error");
+          let html500 = getInjection("500.html");
+          res.status(500).send(html500);
         }
       }
     };

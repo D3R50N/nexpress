@@ -9,8 +9,8 @@ export function injectClientScript(html: string): string {
   const script = getClientScript();
   if (!script) return html;
 
-  if (html.includes("<head>")) {
-    return html.replace("<head>", `<head>\n  ${script}`);
+  if (html.includes("</head>")) {
+    return html.replace("</head>", `${script}\n</head>`);
   }
   if (/<head[^>]*>/i.test(html)) {
     return html.replace(/<head[^>]*>/i, (match) => `${match}\n  ${script}`);

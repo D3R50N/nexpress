@@ -10,7 +10,7 @@ function toPascalCase(str: string): string {
 /**
  * Renders a Lucide SVG icon string by icon name and optional CSS classes or extra attributes.
  */
-export function renderLucideIcon(
+function renderLucideIcon(
   name: string,
   className: string = '',
   extraAttrs: Record<string, string> = {}

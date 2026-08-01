@@ -8,6 +8,7 @@ import { Liquid } from "liquidjs";
 import { logger } from "./logger";
 import { getFilesPattern } from "./router";
 import { ejsToEta } from "./helpers";
+import { isDevMode } from "./env";
 
 const etaEngine = new Eta({
   useWith: true,
@@ -16,6 +17,7 @@ const liquidEngine = new Liquid();
 
 export interface ComponentOptions {
   engine?: string;
+  isDev?: boolean;
 }
 
 export interface ComponentDefinition {
@@ -26,6 +28,8 @@ export interface ComponentDefinition {
 }
 
 const componentRegistry = new Map<string, ComponentDefinition>();
+let lastComponentsDir: string | null = null;
+let lastComponentOptions: ComponentOptions = {};
 
 /**
  * Renders a registered component template by name with provided props (case-insensitive).
@@ -35,6 +39,11 @@ export function renderComponent(
   props: Record<string, any> = {},
   locals: Record<string, any> = {},
 ): string {
+  // In development mode, auto re-register components to guarantee fresh content
+  if (lastComponentsDir && isDevMode(lastComponentOptions)) {
+    registerComponents(lastComponentsDir, lastComponentOptions);
+  }
+
   const mergedProps = { ...locals, ...props };
   const lowerName = name.toLowerCase();
   const comp = componentRegistry.get(lowerName);
@@ -87,8 +96,25 @@ export function registerComponents(
   componentsDir: string,
   options: ComponentOptions = {},
 ): void {
+  lastComponentsDir = componentsDir;
+  lastComponentOptions = options;
+
   if (!fs.existsSync(componentsDir)) {
+    componentRegistry.clear();
     return;
+  }
+
+  // Clear existing registry to prevent stale components
+  componentRegistry.clear();
+
+  // Reset Handlebars partials
+  for (const k of Object.keys(hbs.handlebars.partials)) {
+    delete hbs.handlebars.partials[k];
+  }
+
+  // Reset Eta template cache
+  if ((etaEngine as any).templatesSync && (etaEngine as any).templatesSync.cache) {
+    (etaEngine as any).templatesSync.cache = {};
   }
 
   const files = globSync(getFilesPattern(options.engine), {

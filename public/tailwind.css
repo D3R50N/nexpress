@@ -218,6 +218,45 @@
   .z-50 {
     z-index: 50;
   }
+  .m-2\.25 {
+    margin: calc(var(--spacing) * 2.25);
+  }
+  .m-6\.75 {
+    margin: calc(var(--spacing) * 6.75);
+  }
+  .m-14\.75 {
+    margin: calc(var(--spacing) * 14.75);
+  }
+  .m-23 {
+    margin: calc(var(--spacing) * 23);
+  }
+  .m-56\.75 {
+    margin: calc(var(--spacing) * 56.75);
+  }
+  .m-74\.75 {
+    margin: calc(var(--spacing) * 74.75);
+  }
+  .m-99 {
+    margin: calc(var(--spacing) * 99);
+  }
+  .m-100\.75 {
+    margin: calc(var(--spacing) * 100.75);
+  }
+  .m-128 {
+    margin: calc(var(--spacing) * 128);
+  }
+  .m-142 {
+    margin: calc(var(--spacing) * 142);
+  }
+  .m-219\.75 {
+    margin: calc(var(--spacing) * 219.75);
+  }
+  .m-270 {
+    margin: calc(var(--spacing) * 270);
+  }
+  .m-492\.75 {
+    margin: calc(var(--spacing) * 492.75);
+  }
   .mx-auto {
     margin-inline: auto;
   }

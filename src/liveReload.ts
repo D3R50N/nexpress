@@ -41,7 +41,7 @@ export function injectLiveReloadScript(html: string): string {
   if (html.includes("__nxpress_live_reload__")) return html;
   const script = getLiveReloadScript();
   if (html.includes("</body>")) {
-    return html.replace("</body>", `${script}\n</body>`);
+    return html.replace("</body>", `\n${script}\n</body>`);
   }
   return html + script;
 }
