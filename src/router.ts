@@ -551,6 +551,7 @@ export async function renderPageView(
     "$",
     "tailwind",
     "I",
+    "cn",
   ];
   for (const key of systemReservedKeys) {
     if (key in pageProps) {

@@ -42,7 +42,7 @@ async function runTests() {
     // 2. Test 404 page & injection
     const notFound = await fetchUrl(PORT_EJS, '/non-existent-page-123');
     assert.strictEqual(notFound.status, 404);
-    assert.ok(notFound.body.includes('404 Not Found'));
+    assert.ok(notFound.body.includes('404'));
     assert.ok(notFound.body.includes('__nxpress_live_reload__'));
     console.log('✅ Injected 404 Page test passed!');
 

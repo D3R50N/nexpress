@@ -204,6 +204,7 @@ Nxpress registers built-in helper functions accessible in all supported template
 
 ### Collections and Utility Helpers
 
+- `cn(...classes)`: Merges class names and resolves Tailwind CSS class conflicts using `clsx` and `tailwind-merge` (e.g. `<%= cn('px-2 py-1', isActive && 'bg-blue-500', 'px-4') %>` -> `'py-1 bg-blue-500 px-4'`).
 - `len(val)`: Returns length of array, string, or object keys count.
 - `contains(arr, val)` / `includes(arr, val)`: Checks if array or string contains value.
 - `add(a, b)`: Adds two numbers.

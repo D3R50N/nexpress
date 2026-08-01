@@ -45,6 +45,7 @@
     "@tailwindcss/cli": "^4.3.3",
     "chalk": "^6.0.0",
     "chokidar": "^5.0.0",
+    "clsx": "^2.1.1",
     "commander": "^15.0.0",
     "dotenv": "^17.4.2",
     "eta": "^4.6.0",
@@ -56,6 +57,7 @@
     "liquidjs": "^10.27.2",
     "lucide": "^1.28.0",
     "nunjucks": "^3.2.4",
+    "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {

@@ -1,5 +1,14 @@
 import hbs from 'hbs';
 import * as lucideIcons from 'lucide';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+/**
+ * Merges Tailwind CSS class names efficiently resolving conflicts (clsx + tailwind-merge).
+ */
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs));
+}
 
 function toPascalCase(str: string): string {
   return String(str ?? '')
@@ -58,6 +67,13 @@ function renderLucideIcon(
 }
 
 export const builtinHelpers = {
+  /**
+   * Merges class names and resolves Tailwind CSS class conflicts.
+   */
+  cn(...inputs: any[]): string {
+    return cn(...inputs);
+  },
+
   /**
    * Renders a Lucide SVG icon by name (e.g. icon('user', 'w-5 h-5')).
    */
