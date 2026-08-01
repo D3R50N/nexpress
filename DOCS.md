@@ -138,7 +138,7 @@ A sanitized representation of the current HTTP request:
 
 Exposes environment variables to templates.
 
-- **When `secureEnv: true` (default)**: Filters `process.env` to only include `NODE_ENV` and variables starting with `PUBLIC_` or `NEXT_PUBLIC_`.
+- **When `secureEnv: true` (default)**: Filters `process.env` to only include `NODE_ENV` and variables starting with `PUBLIC_`.
 - **When `secureEnv: false`**: Exposes all variables in `process.env`.
 
 ```html
