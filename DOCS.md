@@ -8,12 +8,16 @@ This document details all features, configuration options, template objects, hel
 
 `@nxpress/core` is an Express.js-based framework for Node.js providing file-based routing, template components, cascading middlewares, automatic response handling, and built-in template helpers.
 
-### CLI Commands
+### Starting the Server
 
-The CLI is executed via `nxpress` or `nxp` binaries:
+You can start your Nxpress application in two ways:
 
-- `nxpress dev`: Starts the development server with Hot Reload and dynamic no-cache evaluation for middlewares, route handlers, and configuration files.
-- `nxpress start`: Starts the production server.
+1. **Via Nxpress CLI (`nxpress dev` / `nxp dev`)**:
+   - `nxpress dev`: Starts the development server with Hot Reload, live route re-scanning, and Tailwind compilation.
+   - `nxpress start`: Starts the production server.
+
+2. **Via custom `server.ts` file (`npx tsx --watch server.ts` / `pnpm serve`)**:
+   - Executes `server.ts` directly using `tsx`, instantiating the app via `nxpress(options)` / `serve(options)`.
 
 ---
 
@@ -380,6 +384,8 @@ import {
   nxpress,
   serve,
   NxpressServerOptions,
+  TemplateEngine,
+  HttpMethod,
   logger,
   Request,
   Response,
@@ -387,13 +393,13 @@ import {
   NextFunction,
   RequestHandler,
   Handler,
-  builtinHelpers
 } from '@nxpress/core';
 ```
 
+- `TemplateEngine`: Type alias for supported view engine identifiers (`"hbs" | "handlebars" | "ejs" | "html" | "njk" | "nunjucks" | "liquid"`).
+- `HttpMethod`: Supported HTTP request methods (`"get" | "post" | "put" | "patch" | "delete" | "options" | "head" | "all"`).
 - `Handler` / `RequestHandler`: Standard Express handler and middleware type re-exported from Express.
 - `Request`, `Response`, `Express`, `NextFunction`: Re-exported Express types.
-- `builtinHelpers`: Object containing all built-in template helper functions.
 
 ---
 
