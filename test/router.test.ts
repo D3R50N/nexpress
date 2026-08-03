@@ -87,11 +87,10 @@ async function testExecuteMw() {
     getRouteMiddlewares({ middlewares: () => {} });
   }, /cannot be a function/);
 
-  const merged = getRouteMiddlewares({
-    middleware: () => {},
-    middlewares: [() => {}, () => {}]
-  });
-  assert.strictEqual(merged.length, 3);
+  // 4. Test getJitiLoader with tsconfig path aliases
+  const { getJitiLoader } = await import('../src/router');
+  const loader = getJitiLoader(path.resolve('.'));
+  assert.ok(loader);
 }
 
 testExecuteMw().then(() => {

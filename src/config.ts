@@ -3,12 +3,19 @@ import fs from "fs";
 import { createJiti } from "jiti";
 import { logger } from "./logger";
 
-const jitiLoader = createJiti(__filename, {
-  cache: false,
-  requireCache: false,
-});
+export function getJitiLoader(rootDir?: string) {
+  const baseDir = rootDir || process.cwd();
+  const tsconfigPath = path.join(baseDir, "tsconfig.json");
+  const hasTsConfig = fs.existsSync(tsconfigPath);
+  return createJiti(path.join(baseDir, "index.ts"), {
+    cache: false,
+    requireCache: false,
+    tsconfigPaths: hasTsConfig ? tsconfigPath : true,
+  });
+}
 
 export function loadConfigFile(rootDir: string): Record<string, any> {
+  const jitiLoader = getJitiLoader(rootDir);
   const jsonConfig = path.join(rootDir, "nxpress.config.json");
   if (fs.existsSync(jsonConfig)) {
     try {

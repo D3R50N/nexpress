@@ -38,10 +38,16 @@ try {
   registerNunjucksHelpers(nunjucks);
 } catch (_e) {}
 
-const jitiLoader = createJiti(__filename, {
-  cache: false,
-  requireCache: false,
-});
+export function getJitiLoader(rootDir?: string) {
+  const baseDir = rootDir || process.cwd();
+  const tsconfigPath = path.join(baseDir, "tsconfig.json");
+  const hasTsConfig = fs.existsSync(tsconfigPath);
+  return createJiti(path.join(baseDir, "index.ts"), {
+    cache: false,
+    requireCache: false,
+    tsconfigPaths: hasTsConfig ? tsconfigPath : true,
+  });
+}
 
 export interface NxpressDataModule {
   props?: (
@@ -290,7 +296,10 @@ function toRelPath(filePath: string): string {
  * Creates a dynamic RequestHandler wrapper for a folder-level middleware file.
  * Clears require cache and reloads the file on each request to support instant dev updates.
  */
-export function createFolderMiddlewareWrapper(mwFile: string): RequestHandler {
+export function createFolderMiddlewareWrapper(
+  mwFile: string,
+  rootDir?: string,
+): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       try {
@@ -298,8 +307,9 @@ export function createFolderMiddlewareWrapper(mwFile: string): RequestHandler {
       } catch (e) {}
 
       let mwModule: any;
+      const loader = getJitiLoader(rootDir);
       try {
-        mwModule = jitiLoader(mwFile);
+        mwModule = loader(mwFile);
       } catch (e) {
         mwModule = require(mwFile);
       }
@@ -339,7 +349,10 @@ export function createFolderMiddlewareWrapper(mwFile: string): RequestHandler {
  * Creates a dynamic RequestHandler wrapper for route-level middlewares.
  * Strictly checks `middleware` (must be function) and `middlewares` (must be array) exports and merges them.
  */
-export function createRouteMiddlewareWrapper(filePath: string): RequestHandler {
+export function createRouteMiddlewareWrapper(
+  filePath: string,
+  rootDir?: string,
+): RequestHandler {
   return async (req: Request, res: Response, next: NextFunction) => {
     const relFile = toRelPath(filePath);
     try {
@@ -348,8 +361,9 @@ export function createRouteMiddlewareWrapper(filePath: string): RequestHandler {
       } catch (e) {}
 
       let routeModule: any;
+      const loader = getJitiLoader(rootDir);
       try {
-        routeModule = jitiLoader(filePath);
+        routeModule = loader(filePath);
       } catch (e) {
         routeModule = require(filePath);
       }
@@ -377,13 +391,17 @@ export function createRouteMiddlewareWrapper(filePath: string): RequestHandler {
             if (typeof item === "function") rawMwList.push(item);
           });
         } else {
-          const msg = `Export 'middlewares' in "${relFile}" must be an Array.`;
+          const msg = `Export 'middlewares' in "${relFile}" must be an Array of functions.`;
           throw new Error(msg);
         }
       }
 
       await executeMiddlewareList(rawMwList, req, res, next);
     } catch (err) {
+      logger.error(
+        `Error executing route middleware at ${toRelPath(filePath)}:`,
+        err,
+      );
       next(err);
     }
   };
@@ -396,6 +414,7 @@ export function getFolderMiddlewares(
   appDir: string,
   relPath: string,
   routePath: string,
+  rootDir?: string,
 ): RequestHandler[] {
   const middlewares: RequestHandler[] = [];
   const dirParts = path
@@ -423,7 +442,7 @@ export function getFolderMiddlewares(
     }
 
     if (mwFile) {
-      middlewares.push(createFolderMiddlewareWrapper(mwFile));
+      middlewares.push(createFolderMiddlewareWrapper(mwFile, rootDir));
     }
   }
 
@@ -503,10 +522,11 @@ export async function renderPageView(
   if (companionPath) {
     try {
       let dataModule: any;
+      const loader = getJitiLoader(rootDir);
       try {
-        dataModule = await jitiLoader.import(companionPath);
+        dataModule = await loader.import(companionPath);
       } catch (importErr) {
-        dataModule = jitiLoader(companionPath);
+        dataModule = loader(companionPath);
       }
 
       let propsFn: any = null;
@@ -642,17 +662,18 @@ export function registerRoutes(
 
     const fullPath = path.resolve(appDir, file);
     const routePath = fileToRoutePath(file);
+    const loader = getJitiLoader(options.rootDir);
 
     delete require.cache[require.resolve(fullPath)];
     let routeModule: any;
     try {
-      routeModule = jitiLoader(fullPath);
+      routeModule = loader(fullPath);
     } catch (e) {
       routeModule = require(fullPath);
     }
 
-    const folderMws = getFolderMiddlewares(appDir, file, routePath);
-    const routeMwWrapper = createRouteMiddlewareWrapper(fullPath);
+    const folderMws = getFolderMiddlewares(appDir, file, routePath, options.rootDir);
+    const routeMwWrapper = createRouteMiddlewareWrapper(fullPath, options.rootDir);
     const allMiddlewares = [...folderMws, routeMwWrapper];
 
     const methods: HttpMethod[] = ["get", "post", "put", "delete", "patch"];
@@ -668,7 +689,7 @@ export function registerRoutes(
               try {
                 delete require.cache[require.resolve(fullPath)];
               } catch (e) {}
-              const freshModule = jitiLoader(fullPath);
+              const freshModule = loader(fullPath);
               const handler =
                 typeof freshModule[method] === "function"
                   ? freshModule[method]
@@ -704,7 +725,7 @@ export function registerRoutes(
             try {
               delete require.cache[require.resolve(fullPath)];
             } catch (e) {}
-            const freshModule = jitiLoader(fullPath);
+            const freshModule = loader(fullPath);
             const defaultHandler = freshModule.default || freshModule;
             const handler =
               typeof defaultHandler === "function"
@@ -763,10 +784,10 @@ export function registerRoutes(
       companionPath = companionJsFile;
     }
 
-    const folderMws = getFolderMiddlewares(appDir, templateFile, routePath);
+    const folderMws = getFolderMiddlewares(appDir, templateFile, routePath, options.rootDir);
     const allMiddlewares = [...folderMws];
     if (companionPath) {
-      allMiddlewares.push(createRouteMiddlewareWrapper(companionPath));
+      allMiddlewares.push(createRouteMiddlewareWrapper(companionPath, options.rootDir));
     }
 
     const handler: RequestHandler = async (req: Request, res: Response) => {
